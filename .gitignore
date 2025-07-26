@@ -1,5 +1,28 @@
-.env
+# Node
+node_modules/
+package-lock.json
+
+# Python
 __pycache__/
 *.py[cod]
 *.log
+venv/
+env/
+
+# Dotfiles / Secrets
+.env
+.env/
+
+# Project-specific
 profile.txt
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Editor & OS garbage
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
