@@ -186,6 +186,7 @@ Files to process:
                 task_id=task.task_id,
                 result={
                     "status": "SUCCESS",
+                    "directory": target_directory,
                     "files_found": 0,
                     "files_processed": 0,
                     "message": "No Python files found in directory"
@@ -211,8 +212,11 @@ Files to process:
                 task_id=task.task_id,
                 result={
                     "status": "SUCCESS",
+                    "directory": target_directory,
                     "files_found": len(python_files),
                     "files_processed": 0,
+                    "files_needing_docstrings": 0,
+                    "files_analysis": files_analysis,
                     "message": "All files already have docstrings"
                 }
             )
