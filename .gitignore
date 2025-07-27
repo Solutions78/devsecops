@@ -14,7 +14,8 @@ env/
 .env/
 
 # Project-specific
-profile*.txt
+profile.txt
+profile2.txt
 codex.txt
 pylint.txt
 
