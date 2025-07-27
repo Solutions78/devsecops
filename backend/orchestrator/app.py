@@ -1,3 +1,12 @@
+"""DevSecOps Orchestrator FastAPI Application.
+
+This module provides the main FastAPI application for the DevSecOps orchestrator,
+which manages various AI agents for code review, testing, security auditing, and
+other development operations.
+
+The application provides REST and WebSocket endpoints for task submission and
+real-time status updates.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -70,6 +79,21 @@ router.register_route("orchestrate", orchestrator_agent.name)
 
 @app.post("/task")
 async def submit_task(intent: str, files: list[str] | None = None):
+    """Submit a task to be processed by an appropriate agent.
+
+    Creates a new task with a unique ID and routes it to the appropriate agent
+    based on the provided intent. The task is executed asynchronously.
+
+    Args:
+        intent: The type of task to perform (e.g., 'code_review', 'generate_docstrings').
+        files: Optional list of file paths to be processed by the agent.
+
+    Returns:
+        dict: Contains the generated task_id and the name of the assigned agent.
+
+    Raises:
+        ValueError: If no agent is registered for the provided intent.
+    """
     task = Task(task_id=str(uuid.uuid4()), intent=intent, files=files or [])
     agent_name = router.route(task)
     asyncio.create_task(manager.run_task(agent_name, task))
@@ -78,6 +102,18 @@ async def submit_task(intent: str, files: list[str] | None = None):
 
 @app.websocket("/updates")
 async def updates(ws: WebSocket):
+    """WebSocket endpoint for receiving real-time agent status updates.
+
+    Establishes a WebSocket connection and streams agent status updates
+    and task completion events to the connected client.
+
+    Args:
+        ws: WebSocket connection instance.
+
+    Note:
+        The connection is automatically cleaned up when the client disconnects.
+        All events are sent as JSON-serialized objects.
+    """
     await ws.accept()
     queue = event_bus.subscribe()
     try:
