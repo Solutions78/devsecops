@@ -1,6 +1,8 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 pytest
 pytest-asyncio
 prometheus-fastapi-instrumentator
+httpx
+websockets

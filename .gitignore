@@ -15,7 +15,9 @@ aider_env/
 .env/
 
 # Project-specific
-*.txt
+profile2.txt
+pylint.txt
+shit.txt
 
 # Build output
 dist/
