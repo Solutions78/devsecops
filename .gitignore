@@ -8,16 +8,14 @@ __pycache__/
 *.log
 venv/
 env/
+aider_env/
 
 # Dotfiles / Secrets
 .env
 .env/
 
 # Project-specific
-profile.txt
-profile2.txt
-codex.txt
-pylint.txt
+*.txt
 
 # Build output
 dist/
