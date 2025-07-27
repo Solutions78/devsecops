@@ -1,24 +1,37 @@
-# DevSecOps Orchestrator Backend
+###Current Folder Structure
+🔧 backend/
+routes/agents.ts – API endpoints for listing, invoking, or managing Claude agents
 
-This repository contains a scaffold for a backend service orchestrating Claude agents across the secure code lifecycle. The new Python backend uses **FastAPI** and a simple event-driven architecture.
+server.ts – Express or Fastify server entry point
 
-## Running
+devsecops/ – Placeholder? May want to clarify intent or merge with routes/ or services/
 
-Install dependencies and start the server:
+🌍 public/
+Static files like index.html
 
-```bash
-pip install -r orchestrator/requirements.txt
-uvicorn orchestrator.app:app --reload
-```
+🧩 src/components/
+UI components:
 
-The API provides endpoints to submit tasks and a WebSocket for real-time updates.
+AgentCard.tsx – Displays agent name, status, icon
 
-See `AGENTS.md` for a list of available Claude agents.
+AgentConfigModal.tsx – Agent customization pop-up
 
-## Tests
+LogsPanel.tsx – Output logs from each agent
 
-Run tests with `pytest`:
+PipelineView.tsx – Your visual CI/CD graph canvas
 
-```bash
-pytest orchestrator/tests
-```
+StatusIndicator.tsx – Active/inactive/errored state badges
+
+📋 src/pages/
+Dashboard.tsx – Main page for orchestrating agents and viewing real-time status
+
+🔌 src/services/
+AgentOrchestrator.ts – Likely where you'll sequence agent calls and handle delegation
+
+ClaudeAPI.ts – Direct wrapper around Claude Code CLI or HTTP API for agent execution
+
+🧠 types/
+agents.ts – TS interfaces for agents, tasks, logs, status enums
+
+⚙️ utils/
+pipelineGraph.ts – Graphviz/NodeGraph logic for rendering flow between agents
