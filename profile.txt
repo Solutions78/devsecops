@@ -1,5 +1,5 @@
 #=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
-#=+=|       A N O T H E R   M I S F I T   C R E A T I O N    |=+=
+#            A N O T H E R   M I S F I T   C R E A T I O N
 #=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 
 # ~/.zshrc - Rationally Organized, Productivity-Driven
@@ -59,7 +59,6 @@ alias bdenv='source buddy_env/bin/activate'
 alias start='npm run start'
 alias build='npm run build'
 alias ls='eza --group-directories-first --color=auto --icons'
-alias cls='clear'
 
 
 [[ -x "$(command -v bat)" ]] && alias cat='bat'
@@ -88,8 +87,6 @@ alias undopush='git push -f origin HEAD^:master'
 alias unstage='git reset HEAD'
 alias ga='git add "${@:-.}"'
 alias gl='git log --pretty=format:"%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --date=short'
-alias gp='git push'
-alias gsync='ga && gcm "sync" && gp'
 
 # Git Extras
 alias obliterate='git obliterate'

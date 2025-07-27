@@ -14,7 +14,9 @@ env/
 .env/
 
 # Project-specific
-profile.txt
+profile*.txt
+codex.txt
+pylint.txt
 
 # Build output
 dist/
@@ -26,3 +28,6 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Virtual Environments
+devsecops/

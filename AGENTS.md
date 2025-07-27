@@ -52,3 +52,13 @@ This document captures the complete list of Claude Code agents implemented in th
 ---
 
 Each agent is configured manually using Claude Code's personal agent setup and invoked automatically via task flow orchestration or interactively via the Claude Code console, API, or future dashboard interface.
+
+## Backend Review Protocol
+
+When asked to review the backend/orchestrator directory:
+
+- Scan all Python files for logic, syntax, and structural issues
+- Ensure all imports resolve correctly
+- Validate that required packages are in orchestrator/requirements.txt
+- Suggest edits, removals, or additions to requirements.txt
+- Follow PEP8 and modular design principles
