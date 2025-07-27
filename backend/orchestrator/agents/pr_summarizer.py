@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from ..models import AgentOutput, Task
+try:
+    from ..models import AgentOutput, Task  # type: ignore
+except ImportError:
+    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
+
 from .base import BaseAgent
 
 

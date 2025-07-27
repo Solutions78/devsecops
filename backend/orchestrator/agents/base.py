@@ -3,15 +3,23 @@ from __future__ import annotations
 import abc
 from typing import Optional
 
-from ..models import AgentOutput, Task
-from ..event_bus import EventBus
+# Support both package and standalone execution contexts
+try:
+    from ..models import AgentOutput, Task  # type: ignore
+    from ..event_bus import EventBus  # type: ignore
+except ImportError:  # Fallback when 'agents' is imported as top-level
+    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
+    from backend.orchestrator.event_bus import EventBus  # type: ignore
 
 
 class BaseAgent(abc.ABC):
     """Base class for Claude agents."""
 
-    def __init__(self, name: str, event_bus: Optional[EventBus] = None) -> None:
-        self.name = name
+    def __init__(self, name: str | None = None, event_bus: Optional[EventBus] = None) -> None:
+        # Default to the concrete class name when not provided. This is
+        # convenient for external unit-tests that instantiate an agent without
+        # caring about its runtime registration name.
+        self.name = name or self.__class__.__name__
         self.event_bus = event_bus
 
     async def emit_status(self, status: str, message: Optional[str] = None) -> None:

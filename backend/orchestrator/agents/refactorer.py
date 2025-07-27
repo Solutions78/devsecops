@@ -7,11 +7,22 @@ from pathlib import Path
 from typing import List, Dict, Optional, Set, Any
 from collections import defaultdict, Counter
 
-from ..models import AgentOutput, Task
+try:
+    from ..models import AgentOutput, Task  # type: ignore
+except ImportError:
+    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
+
 from .base import BaseAgent
+# Optional mixin stub
+try:
+    from ..services.claude_client import BatchProcessingMixin  # type: ignore
+except ImportError:
+    class BatchProcessingMixin:  # type: ignore
+        """TODO: Add docstring."""
+        pass
 
 
-class RefactorerAgent(BaseAgent):
+class RefactorerAgent(BaseAgent, BatchProcessingMixin):
     """Agent that proposes comprehensive refactoring suggestions using batch processing.
     
     This agent analyzes entire codebases to identify cross-file refactoring opportunities,
@@ -484,24 +495,29 @@ Prioritize suggestions by impact and provide concrete, actionable recommendation
         await self.emit_status("running", "Generating refactoring recommendations")
         batch_prompt = self._create_batch_refactoring_prompt(files_data, cross_file_analysis)
         
+        # Process with Claude API for comprehensive refactoring analysis
+        await self.emit_status("running", "Processing refactoring analysis with Claude API")
+        claude_response = await self.process_with_claude(batch_prompt, "refactoring")
+        
         await self.emit_status("complete", f"Refactoring analysis complete for {len(files_to_analyze)} files")
         
         return AgentOutput(
             agent_name=self.name,
             task_id=task.task_id,
             result={
-                "status": "ANALYSIS_COMPLETE",
+                "status": "REFACTORING_COMPLETE",
                 "files_analyzed": len(files_to_analyze),
                 "architecture_overview": cross_file_analysis['architecture_overview'],
                 "refactoring_opportunities": cross_file_analysis['refactoring_opportunities'],
                 "architectural_improvements": cross_file_analysis['architectural_improvements'],
                 "dependency_analysis": cross_file_analysis['dependency_analysis'],
                 "batch_prompt": batch_prompt,
+                "claude_response": claude_response,
                 "analysis_scope": {
                     "directory": task.params.get('directory'),
                     "files": files_to_analyze[:10],  # First 10 files for reference
                     "total_files": len(files_to_analyze)
                 },
-                "next_step": "Integrate with Claude API to process batch_prompt and generate comprehensive refactoring recommendations"
+                "next_step": "Review Claude API response for detailed refactoring recommendations and implementation guidance"
             }
         )

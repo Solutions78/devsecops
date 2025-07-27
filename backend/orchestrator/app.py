@@ -12,6 +12,12 @@ from __future__ import annotations
 import asyncio
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
+# Prometheus instrumentation
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+except ModuleNotFoundError:  # Package may be missing in some dev envs
+    Instrumentator = None  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
 
 from .event_bus import EventBus
@@ -31,6 +37,10 @@ from .agents import (
 )
 
 app = FastAPI(title="DevSecOps Orchestrator")
+
+# Register /metrics endpoint if instrumentation is available
+if Instrumentator is not None:
+    Instrumentator().instrument(app).expose(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -128,4 +138,3 @@ async def updates(ws: WebSocket):
             await ws.send_json(event.dict())
     except WebSocketDisconnect:
         event_bus.unsubscribe(queue)
-

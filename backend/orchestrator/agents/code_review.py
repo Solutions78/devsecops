@@ -5,11 +5,23 @@ import glob
 from pathlib import Path
 from typing import List, Dict, Optional, Set
 
-from ..models import AgentOutput, Task
+try:
+    from ..models import AgentOutput, Task  # type: ignore
+except ImportError:
+    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
+
 from .base import BaseAgent
+# Optional mixin for external Claude client
+try:
+    from ..services.claude_client import BatchProcessingMixin  # type: ignore
+except ImportError:
+    class BatchProcessingMixin:  # type: ignore
+        """Stub mixin when claude_client is unavailable."""
+
+        pass
 
 
-class CodeReviewAgent(BaseAgent):
+class CodeReviewAgent(BaseAgent, BatchProcessingMixin):
     """Agent that performs comprehensive code review using batch processing for cost efficiency.
     
     This agent analyzes code files in batches to provide holistic code review that considers
@@ -262,21 +274,26 @@ Format your response with clear sections and actionable recommendations.
         await self.emit_status("running", "Generating comprehensive review prompt")
         batch_prompt = self._create_batch_review_prompt(files_data, analysis)
         
-        await self.emit_status("complete", f"Code review analysis complete for {len(files_to_review)} files")
+        # Process with Claude API for comprehensive code review
+        await self.emit_status("running", "Processing code review with Claude API")
+        claude_response = await self.process_with_claude(batch_prompt, "code_review")
+        
+        await self.emit_status("complete", f"Code review complete for {len(files_to_review)} files")
         
         return AgentOutput(
             agent_name=self.name,
             task_id=task.task_id,
             result={
-                "status": "ANALYSIS_COMPLETE",
+                "status": "REVIEW_COMPLETE",
                 "files_reviewed": len(files_to_review),
                 "analysis": analysis,
                 "batch_prompt": batch_prompt,
+                "claude_response": claude_response,
                 "review_scope": {
                     "directory": task.params.get('directory'),
                     "files": files_to_review[:10],  # First 10 files for reference
                     "total_files": len(files_to_review)
                 },
-                "next_step": "Integrate with Claude API to process batch_prompt and generate comprehensive code review"
+                "next_step": "Review Claude API response for detailed code review findings and recommendations"
             }
         )

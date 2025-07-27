@@ -8,11 +8,21 @@ from pathlib import Path
 from typing import List, Dict, Optional, Set, Any, Tuple
 from collections import defaultdict
 
-from ..models import AgentOutput, Task
+try:
+    from ..models import AgentOutput, Task  # type: ignore
+except ImportError:
+    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
+
 from .base import BaseAgent
+# Optional mixin stub
+try:
+    from ..services.claude_client import BatchProcessingMixin  # type: ignore
+except ImportError:
+    class BatchProcessingMixin:  # type: ignore
+        pass
 
 
-class TestEngineerAgent(BaseAgent):
+class TestEngineerAgent(BaseAgent, BatchProcessingMixin):
     """Agent that generates comprehensive test suites with focus on integration testing.
     
     This agent analyzes entire codebases to generate comprehensive test suites that include
@@ -771,13 +781,17 @@ Format each test file with proper imports, setup/teardown, and clear test docume
         await self.emit_status("running", "Generating comprehensive test strategy")
         batch_prompt = self._create_comprehensive_test_prompt(files_data, integration_analysis)
         
-        await self.emit_status("complete", f"Test analysis complete for {len(files_to_test)} files")
+        # Process with Claude API for comprehensive test generation
+        await self.emit_status("running", "Processing test generation with Claude API")
+        claude_response = await self.process_with_claude(batch_prompt, "test_generation")
+        
+        await self.emit_status("complete", f"Test generation complete for {len(files_to_test)} files")
         
         return AgentOutput(
             agent_name=self.name,
             task_id=task.task_id,
             result={
-                "status": "ANALYSIS_COMPLETE",
+                "status": "TEST_GENERATION_COMPLETE",
                 "files_analyzed": len(files_to_test),
                 "test_strategy": {
                     "integration_test_suites": integration_analysis['integration_test_suites'],
@@ -788,11 +802,12 @@ Format each test file with proper imports, setup/teardown, and clear test docume
                 },
                 "coverage_plan": integration_analysis['test_complexity_assessment']['coverage_targets'],
                 "batch_prompt": batch_prompt,
+                "claude_response": claude_response,
                 "analysis_scope": {
                     "directory": task.params.get('directory'),
                     "files": files_to_test[:10],  # First 10 files for reference
                     "total_files": len(files_to_test)
                 },
-                "next_step": "Integrate with Claude API to process batch_prompt and generate comprehensive test suites"
+                "next_step": "Review Claude API response for generated test suites and implement test files"
             }
         )
