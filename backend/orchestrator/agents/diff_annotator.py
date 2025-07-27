@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import shlex
 from pathlib import Path
 from typing import List, Dict, Optional, Set, Any, Tuple
 from collections import defaultdict
@@ -20,6 +21,26 @@ except ImportError:
     class BatchProcessingMixin:  # type: ignore
         """TODO: Add docstring."""
         pass
+
+
+def validate_git_ref(ref: str) -> bool:
+    """Validate git reference (commit hash, branch name, tag) for security."""
+    if not ref or len(ref) > 100:  # Reasonable length limit
+        return False
+    # Allow alphanumeric, dots, hyphens, underscores, and slashes for refs
+    return bool(re.match(r'^[a-zA-Z0-9._/-]+$', ref))
+
+
+def validate_repository_path(path: str) -> bool:
+    """Validate repository path to prevent path traversal."""
+    if not path:
+        return False
+    # Normalize and check for dangerous patterns
+    normalized = os.path.normpath(path)
+    # Reject absolute paths and parent directory references
+    if normalized.startswith('/') or normalized.startswith('\\') or '..' in normalized:
+        return False
+    return bool(re.match(r'^[a-zA-Z0-9._/-]+$', normalized))
 
 
 class DiffAnnotatorAgent(BaseAgent, BatchProcessingMixin):
@@ -441,12 +462,42 @@ Focus on explaining the relationships between changes across different files and
         elif task.params.get('commit_range'):
             # Git commit range provided
             commit_range = task.params['commit_range']
+            
+            # Security: Validate commit range
+            if not validate_git_ref(commit_range):
+                await self.emit_status("error", f"Invalid commit range format: {commit_range}")
+                return AgentOutput(
+                    agent_name=self.name,
+                    task_id=task.task_id,
+                    result={
+                        "error": "Invalid commit range format",
+                        "message": "Commit range contains invalid characters",
+                        "status": "failed"
+                    }
+                )
+            
+            # Security: Validate repository path
+            repo_path = task.params.get('repository_path', '.')
+            if not validate_repository_path(repo_path):
+                await self.emit_status("error", f"Invalid repository path: {repo_path}")
+                return AgentOutput(
+                    agent_name=self.name,
+                    task_id=task.task_id,
+                    result={
+                        "error": "Invalid repository path",
+                        "message": "Repository path contains dangerous characters",
+                        "status": "failed"
+                    }
+                )
+            
             try:
+                # Security: Use safe subprocess execution with explicit args
                 result = subprocess.run(
                     ['git', 'diff', commit_range],
                     capture_output=True,
                     text=True,
-                    cwd=task.params.get('repository_path', '.')
+                    cwd=repo_path,
+                    timeout=30  # Prevent hanging
                 )
                 if result.returncode == 0:
                     diff_content = result.stdout
@@ -475,12 +526,42 @@ Focus on explaining the relationships between changes across different files and
         elif task.params.get('commit_hash'):
             # Single commit provided
             commit_hash = task.params['commit_hash']
+            
+            # Security: Validate commit hash
+            if not validate_git_ref(commit_hash):
+                await self.emit_status("error", f"Invalid commit hash format: {commit_hash}")
+                return AgentOutput(
+                    agent_name=self.name,
+                    task_id=task.task_id,
+                    result={
+                        "error": "Invalid commit hash format",
+                        "message": "Commit hash contains invalid characters",
+                        "status": "failed"
+                    }
+                )
+            
+            # Security: Validate repository path
+            repo_path = task.params.get('repository_path', '.')
+            if not validate_repository_path(repo_path):
+                await self.emit_status("error", f"Invalid repository path: {repo_path}")
+                return AgentOutput(
+                    agent_name=self.name,
+                    task_id=task.task_id,
+                    result={
+                        "error": "Invalid repository path",
+                        "message": "Repository path contains dangerous characters",
+                        "status": "failed"
+                    }
+                )
+            
             try:
+                # Security: Use safe subprocess execution with explicit args
                 result = subprocess.run(
                     ['git', 'show', '--format=', commit_hash],
                     capture_output=True,
                     text=True,
-                    cwd=task.params.get('repository_path', '.')
+                    cwd=repo_path,
+                    timeout=30  # Prevent hanging
                 )
                 if result.returncode == 0:
                     diff_content = result.stdout
