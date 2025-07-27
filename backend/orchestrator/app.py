@@ -78,7 +78,7 @@ router.register_route("orchestrate", orchestrator_agent.name)
 
 
 @app.post("/task")
-async def submit_task(intent: str, files: list[str] | None = None):
+async def submit_task(intent: str, files: list[str] | None = None, params: dict | None = None):
     """Submit a task to be processed by an appropriate agent.
 
     Creates a new task with a unique ID and routes it to the appropriate agent
@@ -87,6 +87,7 @@ async def submit_task(intent: str, files: list[str] | None = None):
     Args:
         intent: The type of task to perform (e.g., 'code_review', 'generate_docstrings').
         files: Optional list of file paths to be processed by the agent.
+        params: Optional dictionary of parameters for the agent (e.g., {'directory': '/path/to/code'}).
 
     Returns:
         dict: Contains the generated task_id and the name of the assigned agent.
@@ -94,7 +95,12 @@ async def submit_task(intent: str, files: list[str] | None = None):
     Raises:
         ValueError: If no agent is registered for the provided intent.
     """
-    task = Task(task_id=str(uuid.uuid4()), intent=intent, files=files or [])
+    task = Task(
+        task_id=str(uuid.uuid4()), 
+        intent=intent, 
+        files=files or [],
+        params=params or {}
+    )
     agent_name = router.route(task)
     asyncio.create_task(manager.run_task(agent_name, task))
     return {"task_id": task.task_id, "agent": agent_name}
