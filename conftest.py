@@ -51,12 +51,20 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Item) -> bool | None:  # noqa: D401
     loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # ``pyfuncitem.funcargs`` might contain fixtures that are **not** accepted by
+    # the coroutine signature (e.g. the ``event_loop_policy`` fixture provided
+    # by *pytest-asyncio*).  Passing such unexpected keyword-arguments would
+    # raise *TypeError*.  Filter them out so we only forward the parameters the
+    # coroutine explicitly asks for.
+
+    accepted_params = set(inspect.signature(test_obj).parameters)
+    filtered_args = {k: v for k, v in pyfuncitem.funcargs.items() if k in accepted_params}
+
     try:
-        loop.run_until_complete(test_obj(**pyfuncitem.funcargs))
+        loop.run_until_complete(test_obj(**filtered_args))
     finally:
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
 
     # Returning *True* tells pytest that we've already executed the test.
     return True
-
