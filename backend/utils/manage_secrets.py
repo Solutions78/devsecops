@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from services.security.secrets_manager import get_secrets_manager, SecretsManager
+from services.security.azure_auth import get_azure_authenticator, test_azure_connection
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -168,6 +169,102 @@ async def setup_initial_keys():
     print("\nYou can now start the orchestrator with secure key management.")
 
 
+async def test_azure_auth():
+    """Test Azure Active Directory authentication."""
+    print("🔍 Testing Azure Active Directory authentication...")
+    print()
+    
+    results = test_azure_connection()
+    
+    print("📊 Azure Authentication Test Results:")
+    print("=" * 50)
+    
+    for method, result in results.items():
+        if method in ['overall_status', 'recommended_method']:
+            continue
+            
+        status = "✅ SUCCESS" if result.get('authenticated', False) else "❌ FAILED"
+        print(f"{method:20} {status}")
+        
+        if result.get('error'):
+            print(f"{'':20} Error: {result['error']}")
+        
+        if result.get('tenant_id'):
+            print(f"{'':20} Tenant: {result['tenant_id']}")
+        
+        print()
+    
+    overall_status = results.get('overall_status', False)
+    if overall_status:
+        recommended = results.get('recommended_method', 'default')
+        print(f"✅ Azure authentication is working!")
+        print(f"💡 Recommended method: {recommended}")
+    else:
+        print("❌ Azure authentication failed for all methods")
+        print("💡 Make sure you have:")
+        print("   - Azure CLI installed (az login)")
+        print("   - Service principal configured (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET)")
+        print("   - Managed identity enabled (when running on Azure)")
+
+
+async def setup_azure_keyvault():
+    """Interactive setup for Azure Key Vault integration."""
+    print("🔐 Setting up Azure Key Vault integration")
+    print()
+    
+    # Get Azure configuration
+    vault_url = input("Enter Azure Key Vault URL (https://your-vault.vault.azure.net/): ")
+    if not vault_url:
+        print("❌ Key Vault URL is required")
+        return
+    
+    print("\nChoose authentication method:")
+    print("1. Azure CLI (for development)")
+    print("2. Service Principal (for CI/CD)")
+    print("3. Managed Identity (for Azure resources)")
+    
+    choice = input("Enter choice (1-3): ")
+    
+    if choice == "1":
+        print("\n💡 Make sure you're logged in with: az login")
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        
+    elif choice == "2":
+        tenant_id = input("Enter Azure Tenant ID: ")
+        client_id = input("Enter Azure Client ID: ")
+        client_secret = input("Enter Azure Client Secret: ")
+        
+        if not all([tenant_id, client_id, client_secret]):
+            print("❌ All service principal credentials are required")
+            return
+        
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        os.environ['AZURE_TENANT_ID'] = tenant_id
+        os.environ['AZURE_CLIENT_ID'] = client_id
+        os.environ['AZURE_CLIENT_SECRET'] = client_secret
+        
+    elif choice == "3":
+        print("\n💡 Managed Identity authentication will be used")
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        
+    else:
+        print("❌ Invalid choice")
+        return
+    
+    # Test the configuration
+    print("\n🧪 Testing Azure Key Vault connection...")  
+    auth = get_azure_authenticator()
+    test_result = auth.test_authentication()
+    
+    if test_result.get('authenticated'):
+        print("✅ Azure Key Vault setup successful!")
+        print(f"🔐 Vault URL: {vault_url}")
+        print(f"🎫 Auth method: {test_result.get('method', 'unknown')}")
+    else:
+        print("❌ Azure Key Vault setup failed")
+        print(f"Error: {test_result.get('error', 'Unknown error')}")
+
+
 async def backup_secrets(backup_file: str):
     """Create an encrypted backup of all secrets."""
     print(f"💾 Creating encrypted backup: {backup_file}")
@@ -251,6 +348,10 @@ Examples:
     # Setup command
     subparsers.add_parser('setup', help='Set up initial API keys')
     
+    # Azure commands
+    subparsers.add_parser('test-azure', help='Test Azure AD authentication')
+    subparsers.add_parser('setup-azure', help='Setup Azure Key Vault integration')
+    
     # Backup command
     backup_parser = subparsers.add_parser('backup', help='Create encrypted backup')
     backup_parser.add_argument('file', help='Backup file path')
@@ -279,6 +380,10 @@ Examples:
             asyncio.run(setup_initial_keys())
         elif args.command == 'backup':
             asyncio.run(backup_secrets(args.file))
+        elif args.command == 'test-azure':
+            asyncio.run(test_azure_auth())
+        elif args.command == 'setup-azure':
+            asyncio.run(setup_azure_keyvault())
         
     except KeyboardInterrupt:
         print("\n❌ Operation cancelled by user")

@@ -131,7 +131,8 @@ cd backend && uvicorn orchestrator.app:app --reload --port 8001
 ```
 
 ### 🔐 Security Features
-- **Multi-Backend Storage**: System keyring, encrypted files, AWS Secrets Manager
+- **Multi-Backend Storage**: System keyring, encrypted files, Azure Key Vault
+- **Azure AD Integration**: Seamless authentication with Azure Active Directory
 - **API Key Authentication**: Bearer token authentication for all endpoints
 - **Secure Migration**: Automatic migration from .env files
 - **Key Rotation**: Built-in key rotation with management utilities
@@ -383,12 +384,22 @@ python backend/utils/manage_secrets.py set-key API_KEY staging-api-key-456
 python backend/utils/manage_secrets.py set-key API_KEY prod-api-key-789
 ```
 
-#### AWS Secrets Manager (Production)
+#### Azure Key Vault (Production)
 ```bash
-# Configure AWS credentials
-aws configure
+# Configure Azure credentials (choose one method)
+# Method 1: Azure CLI (for development)
+az login
 
-# Keys will automatically sync to AWS Secrets Manager
+# Method 2: Service Principal (for CI/CD)
+export AZURE_TENANT_ID="your-tenant-id"
+export AZURE_CLIENT_ID="your-client-id" 
+export AZURE_CLIENT_SECRET="your-client-secret"
+export AZURE_KEY_VAULT_URL="https://your-vault.vault.azure.net/"
+
+# Method 3: Managed Identity (for Azure resources)
+# No additional configuration needed when running on Azure
+
+# Keys will automatically sync to Azure Key Vault
 python backend/utils/manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
 ```
 

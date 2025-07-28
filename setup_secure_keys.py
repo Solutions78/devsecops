@@ -16,10 +16,11 @@ sys.path.insert(0, str(Path(__file__).parent / "backend"))
 
 try:
     from services.security.secrets_manager import get_secrets_manager
+    from services.security.azure_auth import get_azure_authenticator, test_azure_connection
 except ImportError as e:
     print(f"❌ Error importing secrets manager: {e}")
     print("Make sure you have installed the required dependencies:")
-    print("pip install cryptography keyring boto3")
+    print("pip install cryptography keyring azure-identity azure-keyvault-secrets")
     sys.exit(1)
 
 import logging
@@ -130,6 +131,133 @@ async def migrate_keys():
     return True
 
 
+async def setup_azure_integration():
+    """Set up Azure Key Vault integration."""
+    print("\n🔐 Setting up Azure Key Vault integration...")
+    
+    # Check if Azure is available
+    auth = get_azure_authenticator()
+    if not auth.available:
+        print("❌ Azure SDK not available. Install with:")
+        print("pip install azure-identity azure-keyvault-secrets")
+        return False
+    
+    print("\nAzure Key Vault provides enterprise-grade secret management with:")
+    print("✅ Azure Active Directory integration")
+    print("✅ Hardware security modules (HSM) backing")
+    print("✅ Audit logging and monitoring")
+    print("✅ RBAC access control")
+    print()
+    
+    setup_choice = input("Set up Azure Key Vault integration? (Y/n): ").lower()
+    if setup_choice == 'n':
+        return False
+    
+    # Get Key Vault URL
+    vault_url = input("Enter your Azure Key Vault URL (https://your-vault.vault.azure.net/): ")
+    if not vault_url:
+        print("❌ Key Vault URL is required")
+        return False
+    
+    if not vault_url.startswith('https://'):
+        vault_url = f"https://{vault_url}"
+    if not vault_url.endswith('.vault.azure.net/'):
+        if not vault_url.endswith('.vault.azure.net'):
+            vault_url += '.vault.azure.net/'
+        else:
+            vault_url += '/'
+    
+    # Choose authentication method
+    print("\nChoose authentication method:")
+    print("1. Azure CLI (recommended for development)")
+    print("2. Service Principal (recommended for CI/CD)")
+    print("3. Managed Identity (recommended for Azure resources)")
+    print("4. Test all methods and use the best one")
+    
+    choice = input("Enter choice (1-4): ")
+    
+    if choice == "1":
+        print("\n💡 Using Azure CLI authentication")
+        print("Make sure you're logged in with: az login")
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        auth_method = "cli"
+        
+    elif choice == "2":
+        print("\n💡 Using Service Principal authentication")
+        tenant_id = input("Enter Azure Tenant ID: ")
+        client_id = input("Enter Azure Client ID: ")
+        client_secret = input("Enter Azure Client Secret: ")
+        
+        if not all([tenant_id, client_id, client_secret]):
+            print("❌ All service principal credentials are required")
+            return False
+        
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        os.environ['AZURE_TENANT_ID'] = tenant_id
+        os.environ['AZURE_CLIENT_ID'] = client_id
+        os.environ['AZURE_CLIENT_SECRET'] = client_secret
+        auth_method = "service_principal"
+        
+    elif choice == "3":
+        print("\n💡 Using Managed Identity authentication")
+        print("This works automatically when running on Azure resources")
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        auth_method = "managed_identity"
+        
+    elif choice == "4":
+        print("\n🧪 Testing all authentication methods...")
+        os.environ['AZURE_KEY_VAULT_URL'] = vault_url
+        test_results = test_azure_connection()
+        
+        if test_results.get('overall_status'):
+            auth_method = test_results.get('recommended_method', 'chain')
+            print(f"✅ Authentication successful using {auth_method} method")
+        else:
+            print("❌ All authentication methods failed")
+            print("Please check your Azure configuration")
+            return False
+    else:
+        print("❌ Invalid choice")
+        return False
+    
+    # Test the configuration
+    print(f"\n🧪 Testing Azure Key Vault connection...")
+    test_result = auth.test_authentication(auth_method)
+    
+    if test_result.get('authenticated'):
+        print("✅ Azure Key Vault connection successful!")
+        print(f"🔐 Vault URL: {vault_url}")
+        print(f"🎫 Auth method: {auth_method}")
+        
+        # Test secret storage
+        print("\n🧪 Testing secret storage in Azure Key Vault...")
+        from services.security.secrets_manager import AzureKeyVaultBackend
+        azure_backend = AzureKeyVaultBackend(vault_url, auth_method)
+        
+        if azure_backend.available:
+            test_success = await azure_backend.set_secret('setup-test', 'test-value')
+            if test_success:
+                retrieved = await azure_backend.get_secret('setup-test')
+                if retrieved == 'test-value':
+                    print("✅ Azure Key Vault secret storage test successful")
+                    await azure_backend.delete_secret('setup-test')  # Clean up
+                else:
+                    print("❌ Secret retrieval test failed")
+                    return False
+            else:
+                print("❌ Secret storage test failed")
+                return False
+        else:
+            print("❌ Azure Key Vault backend not available")
+            return False
+        
+        return True
+    else:
+        print("❌ Azure Key Vault connection failed")
+        print(f"Error: {test_result.get('error', 'Unknown error')}")
+        return False
+
+
 async def verify_setup():
     """Verify the secure key management setup."""
     print("\n🔍 Verifying secure key management setup...")
@@ -175,9 +303,11 @@ async def show_usage_instructions():
     print(f"\n📚 Using Secure Key Management:")
     print(f"")
     print(f"🔧 Command Line Management:")
-    print(f"   python backend/orchestrator/scripts/manage_secrets.py list-keys")
-    print(f"   python backend/orchestrator/scripts/manage_secrets.py set-key KEY_NAME value")
-    print(f"   python backend/orchestrator/scripts/manage_secrets.py rotate-key API_KEY")
+    print(f"   python backend/utils/manage_secrets.py list-keys")
+    print(f"   python backend/utils/manage_secrets.py set-key KEY_NAME value")
+    print(f"   python backend/utils/manage_secrets.py rotate-key API_KEY")
+    print(f"   python backend/utils/manage_secrets.py test-azure  # Test Azure AD auth")
+    print(f"   python backend/utils/manage_secrets.py setup-azure  # Configure Azure Key Vault")
     print(f"")
     print(f"🚀 Starting the Orchestrator:")
     print(f"   cd backend && uvicorn orchestrator.app:app --reload --port 8001")
@@ -210,6 +340,15 @@ async def main():
             # Migrate if needed
             if has_env or not has_secure:
                 await migrate_keys()
+            
+            # Optionally set up Azure Key Vault
+            azure_choice = input("\nSet up Azure Key Vault integration for enterprise security? (Y/n): ").lower()
+            if azure_choice != 'n':
+                azure_success = await setup_azure_integration()
+                if azure_success:
+                    print("✅ Azure Key Vault integration configured successfully")
+                else:
+                    print("⚠️ Azure Key Vault setup skipped - using local storage")
             
             # Verify setup
             await verify_setup()

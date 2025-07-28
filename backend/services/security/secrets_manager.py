@@ -196,80 +196,129 @@ class EncryptedFileBackend(SecretBackend):
         return list(secrets.keys())
 
 
-class AWSSecretsManagerBackend(SecretBackend):
-    """AWS Secrets Manager backend for cloud-based secret storage."""
+class AzureKeyVaultBackend(SecretBackend):
+    """Azure Key Vault backend with Azure Active Directory authentication."""
     
-    def __init__(self, region: str = "us-east-1", prefix: str = "devsecops/"):
-        self.region = region
-        self.prefix = prefix
+    def __init__(self, vault_url: Optional[str] = None, auth_method: str = "chain"):
+        """
+        Initialize Azure Key Vault backend.
+        
+        Args:
+            vault_url: Azure Key Vault URL (e.g., https://your-vault.vault.azure.net/)
+            auth_method: Authentication method ('default', 'service_principal', 'managed_identity', 'chain')
+        """
+        self.vault_url = vault_url or os.getenv('AZURE_KEY_VAULT_URL')
+        self.auth_method = auth_method
+        
+        if not self.vault_url:
+            logger.warning("Azure Key Vault URL not configured, backend disabled")
+            self.available = False
+            return
+        
         try:
-            import boto3
-            self.client = boto3.client('secretsmanager', region_name=region)
-            self.available = True
+            # Import Azure authentication module
+            from .azure_auth import get_azure_authenticator
+            
+            self.azure_auth = get_azure_authenticator()
+            if not self.azure_auth.available:
+                logger.warning("Azure SDK not available, Azure Key Vault backend disabled")
+                self.available = False
+                return
+            
+            # Get Key Vault client with proper authentication
+            self.client = self.azure_auth.get_key_vault_client(self.vault_url, auth_method)
+            
+            if self.client:
+                self.available = True
+                logger.info(f"Azure Key Vault backend initialized with vault: {self.vault_url} using {auth_method} auth")
+            else:
+                self.available = False
+                logger.warning("Failed to create Azure Key Vault client")
+            
         except ImportError:
-            logger.warning("boto3 not available, AWS Secrets Manager backend disabled")
+            logger.warning("Azure SDK not available, Azure Key Vault backend disabled")
             self.available = False
         except Exception as e:
-            logger.warning(f"AWS Secrets Manager not available: {e}")
+            logger.warning(f"Azure Key Vault not available: {e}")
             self.available = False
     
+    def _sanitize_key_name(self, key: str) -> str:
+        """Sanitize key name for Azure Key Vault (alphanumeric and hyphens only)."""
+        # Replace underscores and other characters with hyphens
+        sanitized = key.replace('_', '-').replace('.', '-')
+        # Remove any non-alphanumeric characters except hyphens
+        import re
+        sanitized = re.sub(r'[^a-zA-Z0-9-]', '', sanitized)
+        # Ensure it starts with a letter or number
+        if sanitized and not sanitized[0].isalnum():
+            sanitized = 'secret-' + sanitized
+        return sanitized or 'unnamed-secret'
+    
     async def get_secret(self, key: str) -> Optional[str]:
-        """Retrieve secret from AWS Secrets Manager."""
+        """Retrieve secret from Azure Key Vault."""
         if not self.available:
             return None
         
         try:
-            response = self.client.get_secret_value(SecretId=f"{self.prefix}{key}")
-            return response['SecretString']
+            secret_name = self._sanitize_key_name(key)
+            secret = self.client.get_secret(secret_name)
+            logger.debug(f"Retrieved secret '{key}' from Azure Key Vault")
+            return secret.value
         except Exception as e:
-            logger.debug(f"Secret not found in AWS Secrets Manager: {key}")
+            logger.debug(f"Secret not found in Azure Key Vault: {key} (as {self._sanitize_key_name(key)})")
             return None
     
     async def set_secret(self, key: str, value: str) -> bool:
-        """Store secret in AWS Secrets Manager."""
+        """Store secret in Azure Key Vault."""
         if not self.available:
             return False
         
         try:
-            secret_id = f"{self.prefix}{key}"
-            try:
-                # Try to update existing secret
-                self.client.update_secret(SecretId=secret_id, SecretString=value)
-            except self.client.exceptions.ResourceNotFoundException:
-                # Create new secret
-                self.client.create_secret(Name=secret_id, SecretString=value)
+            secret_name = self._sanitize_key_name(key)
+            # Store the original key name as a tag for reference
+            self.client.set_secret(secret_name, value, tags={'original_key': key})
+            logger.info(f"Stored secret '{key}' in Azure Key Vault as '{secret_name}'")
             return True
         except Exception as e:
-            logger.error(f"Error storing secret in AWS Secrets Manager: {e}")
+            logger.error(f"Error storing secret in Azure Key Vault: {e}")
             return False
     
     async def delete_secret(self, key: str) -> bool:
-        """Delete secret from AWS Secrets Manager."""
+        """Delete secret from Azure Key Vault."""
         if not self.available:
             return False
         
         try:
-            self.client.delete_secret(SecretId=f"{self.prefix}{key}", ForceDeleteWithoutRecovery=True)
+            secret_name = self._sanitize_key_name(key)
+            delete_operation = self.client.begin_delete_secret(secret_name)
+            delete_operation.wait()  # Wait for deletion to complete
+            logger.info(f"Deleted secret '{key}' from Azure Key Vault")
             return True
         except Exception as e:
-            logger.error(f"Error deleting secret from AWS Secrets Manager: {e}")
+            logger.error(f"Error deleting secret from Azure Key Vault: {e}")
             return False
     
     async def list_secrets(self) -> list[str]:
-        """List secrets in AWS Secrets Manager."""
+        """List secrets in Azure Key Vault."""
         if not self.available:
             return []
         
         try:
-            response = self.client.list_secrets()
             secrets = []
-            for secret in response.get('SecretList', []):
-                name = secret['Name']
-                if name.startswith(self.prefix):
-                    secrets.append(name[len(self.prefix):])
+            secret_properties = self.client.list_properties_of_secrets()
+            
+            for secret_property in secret_properties:
+                # Try to get the original key name from tags, fallback to secret name
+                try:
+                    secret = self.client.get_secret(secret_property.name)
+                    original_key = secret.properties.tags.get('original_key') if secret.properties.tags else None
+                    secrets.append(original_key or secret_property.name)
+                except Exception:
+                    secrets.append(secret_property.name)
+            
             return secrets
         except Exception as e:
-            logger.error(f"Error listing secrets from AWS Secrets Manager: {e}")
+            logger.error(f"Error listing secrets from Azure Key Vault: {e}")
             return []
 
 
@@ -283,7 +332,7 @@ class SecretsManager:
             backends = [
                 SystemKeyringBackend(),
                 EncryptedFileBackend(),
-                AWSSecretsManagerBackend(),
+                AzureKeyVaultBackend(),
             ]
         
         self.backends = backends

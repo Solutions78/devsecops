@@ -401,7 +401,7 @@ curl -H "Authorization: Bearer your-api-key" ...
 Agents use the secure secrets management system:
 - System keyring storage
 - Encrypted file backup
-- AWS Secrets Manager integration
+- Azure Key Vault integration with Azure AD authentication
 - Zero secrets in code
 
 ## Monitoring and Metrics

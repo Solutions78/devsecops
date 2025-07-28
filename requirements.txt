@@ -9,4 +9,7 @@ websockets
 # Security dependencies
 cryptography>=41.0.0
 keyring>=24.0.0
-boto3>=1.26.0
+# Azure SDK dependencies
+azure-identity>=1.15.0
+azure-keyvault-secrets>=4.7.0
+azure-core>=1.29.0
