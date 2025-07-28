@@ -1,0 +1,14 @@
+# Central place for caches, temp exports, logs
+# (keep it out of git)
+
+# Cache files
+cache/*
+!cache/.gitkeep
+
+# Log files  
+logs/*
+!logs/.gitkeep
+
+# Temporary exports
+exports/*
+!exports/.gitkeep

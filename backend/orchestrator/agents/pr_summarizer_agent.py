@@ -5,7 +5,7 @@ try:
 except ImportError:
     from backend.orchestrator.models import AgentOutput, Task  # type: ignore
 
-from .base import BaseAgent
+from .base_agent import BaseAgent
 
 
 class PRSummarizerAgent(BaseAgent):

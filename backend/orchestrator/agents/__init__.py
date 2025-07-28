@@ -12,7 +12,7 @@ directly from the project root.
 from __future__ import annotations
 
 try:
-    from .base import BaseAgent  # always present
+    from .base_agent import BaseAgent  # always present
 except ImportError:
     import sys
     import os
@@ -20,7 +20,7 @@ except ImportError:
     current_dir = os.path.dirname(__file__)
     if current_dir not in sys.path:
         sys.path.insert(0, current_dir)
-    from base import BaseAgent  # always present
+    from base_agent import BaseAgent  # always present
 
 _export_names: list[str] = ["BaseAgent"]
 
@@ -55,14 +55,14 @@ def _safe_import(module_name: str, symbol: str) -> None:  # pragma: no cover
         pass
 
 
-_safe_import("code_review", "CodeReviewAgent")
-_safe_import("test_engineer", "TestEngineerAgent")
+_safe_import("code_review_agent", "CodeReviewAgent")
+_safe_import("test_engineer_agent", "TestEngineerAgent")
 _safe_import("execution_agent", "ExecutionAgent")
-_safe_import("security_auditor", "SecurityAuditorAgent")
-_safe_import("docstring_generator", "DocstringGeneratorAgent")
-_safe_import("refactorer", "RefactorerAgent")
-_safe_import("diff_annotator", "DiffAnnotatorAgent")
-_safe_import("pr_summarizer", "PRSummarizerAgent")
+_safe_import("security_auditor_agent", "SecurityAuditorAgent")
+_safe_import("docstring_generator_agent", "DocstringGeneratorAgent")
+_safe_import("refactorer_agent", "RefactorerAgent")
+_safe_import("diff_annotator_agent", "DiffAnnotatorAgent")
+_safe_import("pr_summarizer_agent", "PRSummarizerAgent")
 _safe_import("orchestrator_agent", "OrchestratorAgent")
 
 __all__ = _export_names

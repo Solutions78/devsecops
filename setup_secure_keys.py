@@ -12,10 +12,10 @@ import os
 from pathlib import Path
 
 # Ensure we can import from backend
-sys.path.insert(0, str(Path(__file__).parent / "backend" / "orchestrator"))
+sys.path.insert(0, str(Path(__file__).parent / "backend"))
 
 try:
-    from security.secrets_manager import get_secrets_manager
+    from services.security.secrets_manager import get_secrets_manager
 except ImportError as e:
     print(f"❌ Error importing secrets manager: {e}")
     print("Make sure you have installed the required dependencies:")

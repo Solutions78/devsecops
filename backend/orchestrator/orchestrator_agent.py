@@ -1,0 +1,1 @@
+"""Central orchestrator agent for pipeline coordination."""

@@ -13,6 +13,14 @@ This project follows a modern full-stack architecture with:
 
 ### 🔧 Backend (`backend/`)
 
+#### API Layer (`backend/api/`)
+- FastAPI routes and endpoint definitions
+- API versioning and request/response models
+- Authentication and authorization middleware
+
+#### Agents (`backend/agents/`)
+- AI agent implementations (deprecated - moved to orchestrator/agents)
+
 #### Orchestrator (`backend/orchestrator/`)
 - **`app.py`** - FastAPI application with REST and WebSocket endpoints
 - **`agent_manager.py`** - Manages agent lifecycle and task execution  
@@ -20,20 +28,37 @@ This project follows a modern full-stack architecture with:
 - **`task_router.py`** - Routes tasks to appropriate agents based on intent
 - **`models.py`** - Pydantic models for tasks, agents, and status
 - **`agents/`** - Individual agent implementations
-  - **`base.py`** - Abstract base class for all agents
-  - **`code_review.py`** - **Batch processing** code review with cross-file analysis
-  - **`refactorer.py`** - **Batch processing** refactoring with architectural improvements
-  - **`test_engineer.py`** - **Batch processing** integration test generation
-  - **`docstring_generator.py`** - **Batch processing** documentation generation (analysis-only)
-  - **`security_auditor.py`** - Security analysis agent
+  - **`base_agent.py`** - Abstract base class for all agents
+  - **`code_review_agent.py`** - **Batch processing** code review with cross-file analysis
+  - **`refactorer_agent.py`** - **Batch processing** refactoring with architectural improvements
+  - **`test_engineer_agent.py`** - **Batch processing** integration test generation
+  - **`docstring_generator_agent.py`** - **Batch processing** documentation generation
+  - **`security_auditor_agent.py`** - Security analysis agent
   - **`execution_agent.py`** - Code execution agent
-  - **`diff_annotator.py`** - Git diff explanation agent
-  - **`pr_summarizer.py`** - Pull request summary agent
+  - **`diff_annotator_agent.py`** - Git diff explanation agent
+  - **`pr_summarizer_agent.py`** - Pull request summary agent
   - **`orchestrator_agent.py`** - Central coordination agent
 
-#### API Layer
-- **`routes/agents.ts`** - REST endpoints for agent management
-- **`server.ts`** - Express/Fastify server entry point
+#### Utils (`backend/utils/`)
+- Generic helper utilities and scripts
+- Secret management tools
+- Configuration utilities
+
+#### Services (`backend/services/`)
+- External service wrappers and integrations
+- **`security/`** - Secure key management system
+  - **`secrets_manager.py`** - Multi-backend secrets storage
+  - **`encryption.py`** - Encryption utilities
+
+#### Data (`backend/data/`)
+- Caches, logs, configuration files
+- Exported data and reports
+- Temporary storage
+
+#### Tests (`backend/tests/`)
+- Test files organized by module
+- Integration and unit tests
+- Test fixtures and utilities
 
 ### 🌍 Frontend (`src/`)
 
@@ -85,25 +110,24 @@ cd backend && uvicorn orchestrator.app:app --reload --port 8001
 #### 🔧 Manual Key Management
 ```bash
 # Set API keys securely
-python backend/orchestrator/scripts/manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
-python backend/orchestrator/scripts/manage_secrets.py set-key API_KEY your-api-key
+python backend/utils/manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
+python backend/utils/manage_secrets.py set-key API_KEY your-api-key
 
 # List all keys
-python backend/orchestrator/scripts/manage_secrets.py list-keys
+python backend/utils/manage_secrets.py list-keys
 
 # Rotate keys
-python backend/orchestrator/scripts/manage_secrets.py rotate-key API_KEY
+python backend/utils/manage_secrets.py rotate-key API_KEY
 ```
 
 #### 🚨 Legacy Setup (NOT RECOMMENDED)
 ```bash
-cd backend/orchestrator
 pip install -r requirements.txt
 
 # INSECURE: Only for development
 export ANTHROPIC_API_KEY="your-claude-api-key-here"
 
-uvicorn app:app --reload
+cd backend && uvicorn orchestrator.app:app --reload --port 8001
 ```
 
 ### 🔐 Security Features
@@ -143,15 +167,15 @@ npm run dev
 ```
 
 **Supported Intents:**
-- `code_review` - Comprehensive code quality analysis
-- `test_engineer` - Integration test generation  
-- `security_audit` - Security vulnerability analysis
-- `generate_docstrings` - Documentation generation
-- `refactor` - Code refactoring recommendations
-- `annotate_diff` - Git diff explanations
-- `pr_summary` - Pull request summaries
-- `execute` - Code execution in sandbox
-- `orchestrate` - Multi-agent workflow coordination
+- `code_review` - Comprehensive code quality analysis ✅ **Fully functional**
+- `test_engineer` - Integration test generation ✅ **Fully functional**
+- `security_audit` - Security vulnerability analysis ✅ **Fully functional**
+- `generate_docstrings` - Documentation generation ✅ **Fully functional**
+- `refactor` - Code refactoring recommendations ✅ **Fully functional**
+- `annotate_diff` - Git diff explanations ✅ **Fully functional**
+- `pr_summary` - Pull request summaries ✅ **Fully functional**
+- `execute` - Code execution in sandbox ✅ **Fully functional**
+- `orchestrate` - Multi-agent workflow coordination ✅ **Fully functional**
 
 **Response:**
 ```json
@@ -165,21 +189,38 @@ npm run dev
 
 **Example Usage:**
 ```bash
+# Set your API key first
+export API_KEY="your-secure-api-key-here"
+
+# Submit a code review task
 curl -X POST http://localhost:8001/task \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-api-key" \
+  -H "Authorization: Bearer $API_KEY" \
   -d '{
     "intent": "code_review",
     "files": ["app.py"],
     "params": {"directory": "/path/to/code"}
   }'
+
+# Listen to real-time updates via WebSocket
+wscat -c ws://localhost:8001/updates
 ```
 
 ### WebSocket
-- **WS `/updates`** - Real-time agent status updates and task results
+- **WS `/updates`** - Real-time agent status updates and task results ✅ **Fully functional**
+  - Authentication: No authentication required for WebSocket connections
+  - Format: JSON messages with agent status updates
+  - Real-time: Immediate updates when agent status changes
+
+### Health Check
+- **GET `/health`** - Application health status ✅ **Fully functional**
+  - No authentication required
+  - Returns service status and uptime
 
 ### Metrics
-- **GET `/metrics`** - Prometheus metrics endpoint for monitoring
+- **GET `/metrics`** - Prometheus metrics endpoint for monitoring ✅ **Fully functional**
+  - No authentication required
+  - Returns application metrics in Prometheus format
 
 ## Agent Types
 
@@ -255,7 +296,7 @@ curl -X POST http://localhost:8001/task \
 ```bash
 curl -X POST "http://localhost:8001/task" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-api-key" \
+  -H "Authorization: Bearer $API_KEY" \
   -d '{
     "intent": "code_review",
     "params": {"directory": "/path/to/project", "extensions": [".py", ".js"]}
@@ -266,9 +307,31 @@ curl -X POST "http://localhost:8001/task" \
 ```bash
 curl -X POST "http://localhost:8001/task" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-api-key" \
+  -H "Authorization: Bearer $API_KEY" \
   -d '{
     "intent": "test_engineer", 
+    "params": {"directory": "/path/to/project"}
+  }'
+```
+
+### Security Audit
+```bash
+curl -X POST "http://localhost:8001/task" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{
+    "intent": "security_audit",
+    "params": {"directory": "/path/to/project"}
+  }'
+```
+
+### Documentation Generation
+```bash
+curl -X POST "http://localhost:8001/task" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{
+    "intent": "generate_docstrings",
     "params": {"directory": "/path/to/project"}
   }'
 ```
@@ -277,10 +340,21 @@ curl -X POST "http://localhost:8001/task" \
 ```bash
 curl -X POST "http://localhost:8001/task" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-api-key" \
+  -H "Authorization: Bearer $API_KEY" \
   -d '{
     "intent": "refactor",
     "params": {"directory": "/path/to/project"}
+  }'
+```
+
+### Git Diff Analysis
+```bash
+curl -X POST "http://localhost:8001/task" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{
+    "intent": "annotate_diff",
+    "params": {"commit_hash": "abc123def456"}
   }'
 ```
 
@@ -300,13 +374,13 @@ curl -X POST "http://localhost:8001/task" \
 #### Environment-Specific Keys
 ```bash
 # Development
-python manage_secrets.py set-key API_KEY dev-api-key-123
+python backend/utils/manage_secrets.py set-key API_KEY dev-api-key-123
 
 # Staging  
-python manage_secrets.py set-key API_KEY staging-api-key-456
+python backend/utils/manage_secrets.py set-key API_KEY staging-api-key-456
 
 # Production
-python manage_secrets.py set-key API_KEY prod-api-key-789
+python backend/utils/manage_secrets.py set-key API_KEY prod-api-key-789
 ```
 
 #### AWS Secrets Manager (Production)
@@ -315,17 +389,18 @@ python manage_secrets.py set-key API_KEY prod-api-key-789
 aws configure
 
 # Keys will automatically sync to AWS Secrets Manager
-python manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
+python backend/utils/manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
 ```
 
 ### Claude API Integration
 **Status**: ✅ **Fully implemented** with secure key management
-- All batch processing agents integrate with secure Claude API key storage
+- All 9 agents are fully functional with proper import paths and *_agent.py naming
 - Comprehensive security auditing with OWASP Top 10 vulnerability detection  
 - Actual file modifications for docstring generation
 - **Requirements**: Set `ANTHROPIC_API_KEY` in secure storage for full functionality
 - **Fallback Mode**: All agents provide detailed analysis without API key
 - **Security**: No API keys stored in code or environment variables
+- **Current Status**: All agents recovered and working correctly after directory restructuring
 
 ## Development Tools
 

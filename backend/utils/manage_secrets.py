@@ -21,7 +21,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from security.secrets_manager import get_secrets_manager, SecretsManager
+from services.security.secrets_manager import get_secrets_manager, SecretsManager
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

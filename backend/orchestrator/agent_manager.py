@@ -6,11 +6,11 @@ from typing import Dict
 try:
     from .event_bus import EventBus
     from .models import AgentOutput, Task, AgentStatusEnum
-    from .agents.base import BaseAgent
+    from .agents.base_agent import BaseAgent
 except ImportError:
     from event_bus import EventBus
     from models import AgentOutput, Task, AgentStatusEnum
-    from agents.base import BaseAgent
+    from agents.base_agent import BaseAgent
 
 
 class AgentManager:

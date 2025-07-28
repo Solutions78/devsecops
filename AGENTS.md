@@ -4,7 +4,7 @@ This document provides detailed information about the AI agents available in the
 
 ## Agent Architecture
 
-All agents inherit from the `BaseAgent` class (`backend/orchestrator/agents/base.py`) and implement the following interface:
+All agents inherit from the `BaseAgent` class (`backend/orchestrator/agents/base_agent.py`) and implement the following interface:
 
 ```python
 class BaseAgent(abc.ABC):
@@ -15,7 +15,7 @@ class BaseAgent(abc.ABC):
 
 ## Available Agents
 
-### 1. Code Review Agent (`code_review.py`)
+### 1. Code Review Agent (`code_review_agent.py`)
 **Intent**: `code_review`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -46,7 +46,7 @@ class BaseAgent(abc.ABC):
 
 ---
 
-### 2. Test Engineer Agent (`test_engineer.py`)
+### 2. Test Engineer Agent (`test_engineer_agent.py`)
 **Intent**: `test_engineer`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -80,7 +80,7 @@ class BaseAgent(abc.ABC):
 
 ---
 
-### 3. Security Auditor Agent (`security_auditor.py`)
+### 3. Security Auditor Agent (`security_auditor_agent.py`)
 **Intent**: `security_audit`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -114,7 +114,7 @@ class BaseAgent(abc.ABC):
 
 ---
 
-### 4. Refactorer Agent (`refactorer.py`)
+### 4. Refactorer Agent (`refactorer_agent.py`)
 **Intent**: `refactor`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -149,7 +149,7 @@ class BaseAgent(abc.ABC):
 
 ---
 
-### 5. Docstring Generator Agent (`docstring_generator.py`)
+### 5. Docstring Generator Agent (`docstring_generator_agent.py`)
 **Intent**: `generate_docstrings`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -184,7 +184,7 @@ class BaseAgent(abc.ABC):
 
 ---
 
-### 6. Diff Annotator Agent (`diff_annotator.py`)
+### 6. Diff Annotator Agent (`diff_annotator_agent.py`)
 **Intent**: `annotate_diff`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -260,7 +260,7 @@ class BaseAgent(abc.ABC):
 
 ---
 
-### 8. PR Summarizer Agent (`pr_summarizer.py`)
+### 8. PR Summarizer Agent (`pr_summarizer_agent.py`)
 **Intent**: `pr_summary`
 **Status**: ✅ Fully functional with Claude API integration
 
@@ -331,7 +331,7 @@ class BaseAgent(abc.ABC):
 ## Agent Communication
 
 ### Event Bus System
-All agents communicate through the centralized event bus (`event_bus.py`):
+All agents communicate through the centralized event bus (`backend/orchestrator/event_bus.py`):
 
 ```python
 class EventBus:
@@ -348,22 +348,31 @@ Agents emit real-time status updates:
 - `error` - Task failed with error
 
 ### Task Routing
-The `TaskRouter` class automatically routes tasks to appropriate agents based on intent:
+The `TaskRouter` class (`backend/orchestrator/task_router.py`) automatically routes tasks to appropriate agents based on intent:
 
 ```python
 router.register_route("code_review", "code-review")
 router.register_route("security_audit", "security-auditor")
-# ... etc
+router.register_route("test_engineer", "test-engineer")
+router.register_route("generate_docstrings", "docstring-generator")
+router.register_route("refactor", "refactorer")
+router.register_route("annotate_diff", "diff-annotator")
+router.register_route("execute", "execution")
+router.register_route("pr_summary", "pr-summarizer")
+router.register_route("orchestrate", "orchestrator")
 ```
 
 ## Agent Management
 
 ### Registration
-Agents are registered with the `AgentManager`:
+Agents are registered with the `AgentManager` (`backend/orchestrator/agent_manager.py`):
 
 ```python
 manager = AgentManager(event_bus)
 manager.register_agent(code_review_agent)
+manager.register_agent(security_auditor_agent)
+manager.register_agent(test_engineer_agent)
+# ... etc
 ```
 
 ### Task Execution
@@ -420,7 +429,7 @@ ws.onmessage = (event) => {
 
 1. **Inherit from BaseAgent**:
 ```python
-from agents.base import BaseAgent
+from .base_agent import BaseAgent
 
 class MyAgent(BaseAgent):
     async def run(self, task: Task) -> AgentOutput:

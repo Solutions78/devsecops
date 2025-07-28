@@ -35,40 +35,54 @@ try:
     from .models import Task, AgentUpdate
     from .agent_manager import AgentManager
     from .task_router import TaskRouter
-    from .security import get_secret
+    # Import security from the backend services directory
+    import sys
+    import os
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    from services.security import get_secret
 except ImportError:
     # Fall back to absolute imports (when run directly)
+    import sys
+    import os
+    # Add both orchestrator and backend directories to path
+    current_dir = os.path.dirname(__file__)
+    backend_dir = os.path.dirname(current_dir)
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
     from event_bus import EventBus
     from models import Task, AgentUpdate
     from agent_manager import AgentManager
     from task_router import TaskRouter
-    from security import get_secret
-try:
-    # Try relative imports first (when run as module)
-    from .agents import (
-        CodeReviewAgent,
-        TestEngineerAgent,
-        ExecutionAgent,
-        SecurityAuditorAgent,
-        DocstringGeneratorAgent,
-        RefactorerAgent,
-        DiffAnnotatorAgent,
-        PRSummarizerAgent,
-        OrchestratorAgent,
-    )
-except ImportError:
-    # Fall back to absolute imports (when run directly)
-    from agents import (
-        CodeReviewAgent,
-        TestEngineerAgent,
-        ExecutionAgent,
-        SecurityAuditorAgent,
-        DocstringGeneratorAgent,
-        RefactorerAgent,
-        DiffAnnotatorAgent,
-        PRSummarizerAgent,
-        OrchestratorAgent,
-    )
+    from services.security import get_secret
+# Import available agents - some may be placeholder classes
+def safe_import_agent(agent_name, class_name):
+    """Safely import an agent class, return None if not available."""
+    try:
+        try:
+            # Try relative import first
+            module = __import__(f"orchestrator.agents.{agent_name}", fromlist=[class_name])
+        except ImportError:
+            # Try absolute import
+            module = __import__(f"agents.{agent_name}", fromlist=[class_name])
+        
+        return getattr(module, class_name, None)
+    except (ImportError, AttributeError):
+        return None
+
+# Import available agents
+CodeReviewAgent = safe_import_agent("code_review_agent", "CodeReviewAgent")
+TestEngineerAgent = safe_import_agent("test_engineer_agent", "TestEngineerAgent")
+ExecutionAgent = safe_import_agent("execution_agent", "ExecutionAgent")
+SecurityAuditorAgent = safe_import_agent("security_auditor_agent", "SecurityAuditorAgent")
+DocstringGeneratorAgent = safe_import_agent("docstring_generator_agent", "DocstringGeneratorAgent")
+RefactorerAgent = safe_import_agent("refactorer_agent", "RefactorerAgent")
+DiffAnnotatorAgent = safe_import_agent("diff_annotator_agent", "DiffAnnotatorAgent")
+PRSummarizerAgent = safe_import_agent("pr_summarizer_agent", "PRSummarizerAgent")
+OrchestratorAgent = safe_import_agent("orchestrator_agent", "OrchestratorAgent")
 
 app = FastAPI(
     title="DevSecOps Orchestrator",
@@ -125,38 +139,53 @@ event_bus = EventBus()
 manager = AgentManager(event_bus)
 router = TaskRouter()
 
-code_review = CodeReviewAgent("code-review", event_bus=event_bus)
-test_engineer = TestEngineerAgent("test-engineer", event_bus=event_bus)
-execution = ExecutionAgent("execution-agent", event_bus=event_bus)
-security = SecurityAuditorAgent("security-auditor", event_bus=event_bus)
-docstrings = DocstringGeneratorAgent("docstring-generator", event_bus=event_bus)
-refactorer = RefactorerAgent("refactorer", event_bus=event_bus)
-annotator = DiffAnnotatorAgent("diff-annotator", event_bus=event_bus)
-summarizer = PRSummarizerAgent("pr-summarizer", event_bus=event_bus)
-orchestrator_agent = OrchestratorAgent("orchestrator-agent", event_bus=event_bus)
+# Create agent instances (only for available agents)
+agents = {}
+routes = {}
 
-for agent in [
-    code_review,
-    test_engineer,
-    execution,
-    security,
-    docstrings,
-    refactorer,
-    annotator,
-    summarizer,
-    orchestrator_agent,
-]:
+if CodeReviewAgent:
+    agents["code_review"] = CodeReviewAgent("code-review", event_bus=event_bus)
+    routes["code_review"] = "code-review"
+
+if TestEngineerAgent:
+    agents["test_engineer"] = TestEngineerAgent("test-engineer", event_bus=event_bus)
+    routes["test_engineer"] = "test-engineer"
+
+if ExecutionAgent:
+    agents["execution"] = ExecutionAgent("execution-agent", event_bus=event_bus)
+    routes["execute"] = "execution-agent"
+
+if SecurityAuditorAgent:
+    agents["security"] = SecurityAuditorAgent("security-auditor", event_bus=event_bus)
+    routes["security_audit"] = "security-auditor"
+
+if DocstringGeneratorAgent:
+    agents["docstrings"] = DocstringGeneratorAgent("docstring-generator", event_bus=event_bus)
+    routes["generate_docstrings"] = "docstring-generator"
+
+if RefactorerAgent:
+    agents["refactorer"] = RefactorerAgent("refactorer", event_bus=event_bus)
+    routes["refactor"] = "refactorer"
+
+if DiffAnnotatorAgent:
+    agents["annotator"] = DiffAnnotatorAgent("diff-annotator", event_bus=event_bus)
+    routes["annotate_diff"] = "diff-annotator"
+
+if PRSummarizerAgent:
+    agents["summarizer"] = PRSummarizerAgent("pr-summarizer", event_bus=event_bus)
+    routes["pr_summary"] = "pr-summarizer"
+
+if OrchestratorAgent:
+    agents["orchestrator"] = OrchestratorAgent("orchestrator-agent", event_bus=event_bus)
+    routes["orchestrate"] = "orchestrator-agent"
+
+# Register available agents
+for agent in agents.values():
     manager.register_agent(agent)
 
-router.register_route("code_review", code_review.name)
-router.register_route("test_engineer", test_engineer.name)
-router.register_route("execute", execution.name)
-router.register_route("security_audit", security.name)
-router.register_route("generate_docstrings", docstrings.name)
-router.register_route("refactor", refactorer.name)
-router.register_route("annotate_diff", annotator.name)
-router.register_route("pr_summary", summarizer.name)
-router.register_route("orchestrate", orchestrator_agent.name)
+# Register available routes
+for route_name, agent_name in routes.items():
+    router.register_route(route_name, agent_name)
 
 
 # Security: Basic authentication
