@@ -11,7 +11,16 @@ directly from the project root.
 
 from __future__ import annotations
 
-from .base import BaseAgent  # always present
+try:
+    from .base import BaseAgent  # always present
+except ImportError:
+    import sys
+    import os
+    # Ensure we can find the base module
+    current_dir = os.path.dirname(__file__)
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+    from base import BaseAgent  # always present
 
 _export_names: list[str] = ["BaseAgent"]
 
@@ -25,11 +34,24 @@ def _safe_import(module_name: str, symbol: str) -> None:  # pragma: no cover
     """
 
     try:
-        mod = __import__(f"{__name__}.{module_name}", fromlist=[symbol])
+        # Try relative import first
+        try:
+            mod = __import__(f"{__name__}.{module_name}", fromlist=[symbol])
+        except ImportError:
+            # Try absolute import
+            import sys
+            import os
+            current_dir = os.path.dirname(__file__)
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            mod = __import__(module_name, fromlist=[symbol])
+        
         globals()[symbol] = getattr(mod, symbol)
         _export_names.append(symbol)
-    except Exception:
-        # Skip modules that cannot be imported in the current environment.
+    except Exception as e:
+        # For debugging, print the error
+        import sys
+        print(f"Warning: Could not import {symbol} from {module_name}: {e}", file=sys.stderr)
         pass
 
 

@@ -8,6 +8,13 @@ from pathlib import Path
 from typing import List, Dict, Optional, Set, Any, Tuple
 from collections import defaultdict
 
+# This module defines the *TestEngineerAgent* class.  Despite the filename
+# starting with ``test_`` it is *not* a test file.  Setting the special
+# ``__test__`` attribute to *False* prevents *pytest* from collecting it as a
+# test module and silences collection warnings.
+
+__test__: bool = False
+
 try:
     from ..models import AgentOutput, Task  # type: ignore
 except ImportError:
@@ -40,6 +47,11 @@ class TestEngineerAgent(BaseAgent, BatchProcessingMixin):
     - Database integration and data flow testing
     - Mock and fixture generation for complex dependencies
     """
+
+    # Mark the class itself as *not* a test so that when it is imported into
+    # real test modules (e.g. ``test_agent_functionality.py``) pytest does not
+    # attempt to collect it as a test case.
+    __test__: bool = False
 
     def _find_source_files(self, directory: str, extensions: Optional[List[str]] = None) -> List[str]:
         """Find all source code files for test generation.

@@ -3,9 +3,14 @@ from __future__ import annotations
 import asyncio
 from typing import Dict
 
-from .event_bus import EventBus
-from .models import AgentOutput, Task, AgentStatusEnum
-from .agents.base import BaseAgent
+try:
+    from .event_bus import EventBus
+    from .models import AgentOutput, Task, AgentStatusEnum
+    from .agents.base import BaseAgent
+except ImportError:
+    from event_bus import EventBus
+    from models import AgentOutput, Task, AgentStatusEnum
+    from agents.base import BaseAgent
 
 
 class AgentManager:

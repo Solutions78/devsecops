@@ -15,9 +15,11 @@ import logging
 import re
 import os
 from pathlib import Path
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends, Header
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends, Header, Body
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+from typing import Optional
 
 # Prometheus instrumentation
 try:
@@ -26,22 +28,47 @@ except ModuleNotFoundError:  # Package may be missing in some dev envs
     Instrumentator = None  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
 
-from .event_bus import EventBus
-from .models import Task, AgentUpdate
-from .agent_manager import AgentManager
-from .task_router import TaskRouter
-from .security import get_secret
-from .agents import (
-    CodeReviewAgent,
-    TestEngineerAgent,
-    ExecutionAgent,
-    SecurityAuditorAgent,
-    DocstringGeneratorAgent,
-    RefactorerAgent,
-    DiffAnnotatorAgent,
-    PRSummarizerAgent,
-    OrchestratorAgent,
-)
+# Handle both relative and absolute imports
+try:
+    # Try relative imports first (when run as module)
+    from .event_bus import EventBus
+    from .models import Task, AgentUpdate
+    from .agent_manager import AgentManager
+    from .task_router import TaskRouter
+    from .security import get_secret
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from event_bus import EventBus
+    from models import Task, AgentUpdate
+    from agent_manager import AgentManager
+    from task_router import TaskRouter
+    from security import get_secret
+try:
+    # Try relative imports first (when run as module)
+    from .agents import (
+        CodeReviewAgent,
+        TestEngineerAgent,
+        ExecutionAgent,
+        SecurityAuditorAgent,
+        DocstringGeneratorAgent,
+        RefactorerAgent,
+        DiffAnnotatorAgent,
+        PRSummarizerAgent,
+        OrchestratorAgent,
+    )
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from agents import (
+        CodeReviewAgent,
+        TestEngineerAgent,
+        ExecutionAgent,
+        SecurityAuditorAgent,
+        DocstringGeneratorAgent,
+        RefactorerAgent,
+        DiffAnnotatorAgent,
+        PRSummarizerAgent,
+        OrchestratorAgent,
+    )
 
 app = FastAPI(
     title="DevSecOps Orchestrator",
@@ -49,23 +76,34 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Security: Add request size limits to prevent DoS attacks
-app.add_middleware(
-    type('RequestSizeMiddleware', (), {
-        'dispatch': lambda self, request, call_next: self._check_size(request, call_next)
-    })(),
-)
-
-async def _check_size(request, call_next):
+# Security: Request size middleware
+class RequestSizeMiddleware:
     """Middleware to check request size and prevent DoS attacks."""
-    if hasattr(request, 'headers') and 'content-length' in request.headers:
-        content_length = int(request.headers['content-length'])
-        if content_length > 10 * 1024 * 1024:  # 10MB limit
-            return JSONResponse(
-                status_code=413,
-                content={"error": "Request too large", "detail": "Maximum request size is 10MB"}
-            )
-    return await call_next(request)
+    
+    def __init__(self, app, max_size: int = 10 * 1024 * 1024):
+        self.app = app
+        self.max_size = max_size
+    
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            headers = dict(scope["headers"])
+            content_length = headers.get(b"content-length", b"0")
+            try:
+                size = int(content_length.decode())
+                if size > self.max_size:
+                    response = JSONResponse(
+                        status_code=413,
+                        content={"error": "Request too large", "detail": f"Maximum request size is {self.max_size} bytes"}
+                    )
+                    await response(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+        
+        await self.app(scope, receive, send)
+
+# Add request size limits
+app.add_middleware(RequestSizeMiddleware, max_size=10 * 1024 * 1024)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -167,6 +205,14 @@ async def add_security_headers(request, call_next):
     return response
 
 
+# Request models
+class TaskRequest(BaseModel):
+    """Request model for task submission."""
+    intent: str
+    files: Optional[list[str]] = None
+    params: Optional[dict] = None
+
+
 # Security validation functions
 def validate_file_path(file_path: str) -> bool:
     """Validate file path to prevent path traversal attacks."""
@@ -249,9 +295,7 @@ async def general_exception_handler(request, exc):
           summary="Submit a task for agent processing",
           response_description="Task submission confirmation with task ID and assigned agent")
 async def submit_task(
-    intent: str, 
-    files: list[str] | None = None, 
-    params: dict | None = None,
+    request: TaskRequest,
     credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)
 ):
     """Submit a task to be processed by an appropriate agent.
@@ -284,6 +328,11 @@ async def submit_task(
         HTTPException: 500 if an unexpected error occurs during task creation.
     """
     try:
+        # Extract values from request
+        intent = request.intent
+        files = request.files
+        params = request.params
+        
         # Validate intent
         if not intent or not isinstance(intent, str):
             raise HTTPException(

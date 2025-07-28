@@ -1,64 +1,483 @@
-# Claude Code Agents for DevSecOps Orchestrator
+# DevSecOps Orchestrator Agents
 
-This document captures the complete list of Claude Code agents implemented in the AI-powered DevSecOps Orchestrator project. These agents operate as autonomous task-specific subprocesses within a CI/CD pipeline and are coordinated by an orchestrator agent for seamless code validation, transformation, and documentation.
+This document provides detailed information about the AI agents available in the DevSecOps Orchestrator system.
 
----
+## Agent Architecture
 
-## 1. `code-review`
+All agents inherit from the `BaseAgent` class (`backend/orchestrator/agents/base.py`) and implement the following interface:
 
-**Purpose:** Performs general-purpose code reviews for logic errors, bad practices, anti-patterns, and maintainability.
-**Trigger:** Every time new or modified code is submitted.
+```python
+class BaseAgent(abc.ABC):
+    async def run(self, task: Task) -> AgentOutput:
+        """Run the agent on the given task."""
+        raise NotImplementedError
+```
 
-## 2. `test-engineer`
+## Available Agents
 
-**Purpose:** Generates and/or validates unit tests and integration tests for code that passes initial review.
-**Trigger:** After successful code review.
+### 1. Code Review Agent (`code_review.py`)
+**Intent**: `code_review`
+**Status**: ✅ Fully functional with Claude API integration
 
-## 3. `execution-agent`
+**Purpose**: Comprehensive code quality analysis with batch processing for cost optimization.
 
-**Purpose:** Executes code or tests in a sandboxed environment to verify behavior and test correctness.
-**Trigger:** After tests are generated or updated.
+**Features**:
+- Cross-file dependency analysis
+- Architectural pattern detection  
+- Style consistency checking
+- Large file detection and complexity metrics
+- Security vulnerability identification
 
-## 4. `security-auditor`
+**Multi-language Support**:
+- Python, JavaScript, TypeScript, Java, C++, Go, Rust
 
-**Purpose:** Performs static security analysis. Flags potential CVEs, unsafe libraries, injection vectors, secrets, etc.
-**Trigger:** After code passes functional tests.
+**Usage**:
+```json
+{
+  "intent": "code_review",
+  "params": {
+    "directory": "/path/to/project",
+    "extensions": [".py", ".js", ".ts"]
+  }
+}
+```
 
-## 5. `docstring-generator`
-
-**Purpose:** Adds or updates docstrings for functions, classes, and modules to ensure inline developer documentation.
-**Trigger:** After successful audit and test pass.
-
-## 6. `refactorer`
-
-**Purpose:** Identifies and proposes improvements to structure, naming, and code modularity without altering functionality.
-**Trigger:** After tests and documentation generation.
-
-## 7. `diff-annotator`
-
-**Purpose:** Provides human-readable explanations of changes between commits or branches with impact analysis.
-**Trigger:** At the time of pull request or commit diff view.
-
-## 8. `pr-summarizer`
-
-**Purpose:** Summarizes code contributions, changes, rationale, and impact into a clean PR description or changelog.
-**Trigger:** On PR creation.
-
-## 9. `orchestrator-agent`
-
-**Purpose:** Central control agent that tracks project state, determines agent execution order, queues task routing, and monitors completion or error states.
-**Trigger:** Always running as the CI/CD pipeline backbone.
+**Output**: Detailed code review report with findings categorized by severity and file location.
 
 ---
 
-Each agent is configured manually using Claude Code's personal agent setup and invoked automatically via task flow orchestration or interactively via the Claude Code console, API, or future dashboard interface.
+### 2. Test Engineer Agent (`test_engineer.py`)
+**Intent**: `test_engineer`
+**Status**: ✅ Fully functional with Claude API integration
 
-## Backend Review Protocol
+**Purpose**: Integration testing with comprehensive test suite generation.
 
-When asked to review the backend/orchestrator directory:
+**Features**:
+- Cross-module test generation
+- API workflow testing
+- Database integration tests
+- Mock generation
+- End-to-end workflow testing
 
-- Scan all Python files for logic, syntax, and structural issues
-- Ensure all imports resolve correctly
-- Validate that required packages are in orchestrator/requirements.txt
-- Suggest edits, removals, or additions to requirements.txt
-- Follow PEP8 and modular design principles
+**Coverage Targets**:
+- Unit tests: 90%
+- Integration tests: 80%  
+- API endpoints: 100%
+- Database models: 95%
+
+**Usage**:
+```json
+{
+  "intent": "test_engineer",
+  "params": {
+    "directory": "/path/to/project",
+    "test_types": ["unit", "integration", "api"]
+  }
+}
+```
+
+**Output**: Complete test suite with positive/negative test cases and setup instructions.
+
+---
+
+### 3. Security Auditor Agent (`security_auditor.py`)
+**Intent**: `security_audit`
+**Status**: ✅ Fully functional with Claude API integration
+
+**Purpose**: Comprehensive security analysis with OWASP Top 10 vulnerability detection.
+
+**Features**:
+- OWASP Top 10 detection
+- Cross-file security analysis
+- Compliance checking (NIST, DoD standards)
+- Authentication architecture review
+- System-wide vulnerability patterns
+
+**Security Standards**:
+- OWASP Top Ten vulnerabilities
+- NIST 800-53 compliance
+- Joint Cybersecurity Information AI Data Security Guidance
+- DoD secure coding standards
+
+**Usage**:
+```json
+{
+  "intent": "security_audit",
+  "params": {
+    "directory": "/path/to/project",
+    "compliance_standards": ["owasp", "nist"]
+  }
+}
+```
+
+**Output**: Risk-ranked vulnerability assessment with actionable mitigation guidance.
+
+---
+
+### 4. Refactorer Agent (`refactorer.py`)
+**Intent**: `refactor`
+**Status**: ✅ Fully functional with Claude API integration
+
+**Purpose**: Cross-file refactoring opportunities and architectural improvements.
+
+**Features**:
+- Batch processing for comprehensive analysis
+- Design pattern suggestions
+- Code duplication identification
+- Dependency analysis
+- Coupling reduction recommendations
+- Module organization improvements
+
+**Analysis Types**:
+- Performance optimization opportunities
+- Architectural refactoring suggestions
+- Code maintainability improvements
+- Design pattern implementations
+
+**Usage**:
+```json
+{
+  "intent": "refactor",
+  "params": {
+    "directory": "/path/to/project",
+    "focus_areas": ["performance", "maintainability", "architecture"]
+  }
+}
+```
+
+**Output**: Detailed refactoring recommendations with before/after code examples.
+
+---
+
+### 5. Docstring Generator Agent (`docstring_generator.py`)
+**Intent**: `generate_docstrings`
+**Status**: ✅ Fully functional with Claude API integration
+
+**Purpose**: Batch documentation generation with actual file modifications.
+
+**Features**:
+- Batch processing for cost efficiency
+- Smart file filtering
+- Missing docstring analysis
+- Google-style docstring generation
+- Automatic file updates
+
+**Analysis Capabilities**:
+- Identifies classes/functions missing documentation
+- Creates comprehensive batch prompts
+- Follows Google docstring style guide
+- Preserves existing documentation
+
+**Usage**:
+```json
+{
+  "intent": "generate_docstrings",
+  "params": {
+    "directory": "/path/to/project",
+    "style": "google",
+    "update_files": true
+  }
+}
+```
+
+**Output**: Updated source files with comprehensive docstrings and generation report.
+
+---
+
+### 6. Diff Annotator Agent (`diff_annotator.py`)
+**Intent**: `annotate_diff`
+**Status**: ✅ Fully functional with Claude API integration
+
+**Purpose**: Git diff explanation and cross-file impact analysis.
+
+**Features**:
+- Multi-file diff processing
+- Architectural change detection
+- Breaking change identification
+- Cross-file relationship analysis
+- Semantic change detection
+
+**Input Methods**:
+- Git commit hash
+- Raw diff content
+- File path comparisons
+
+**Usage**:
+```json
+{
+  "intent": "annotate_diff",
+  "params": {
+    "commit_hash": "abc123def456"
+  }
+}
+```
+
+**OR**:
+```json
+{
+  "intent": "annotate_diff",
+  "params": {
+    "diff": "git diff content here..."
+  }
+}
+```
+
+**Output**: Plain-English explanation of changes with impact assessment.
+
+---
+
+### 7. Execution Agent (`execution_agent.py`)
+**Intent**: `execute`
+**Status**: ✅ Fully functional
+
+**Purpose**: Code execution in sandboxed environment with runtime validation.
+
+**Features**:
+- Sandboxed Python code execution
+- Runtime behavior validation
+- Output capture and analysis
+- Exception handling
+- Security constraints
+
+**Safety Features**:
+- Restricted execution environment
+- Timeout controls
+- Resource limitations
+- Output sanitization
+
+**Usage**:
+```json
+{
+  "intent": "execute",
+  "params": {
+    "code": "print('Hello, World!')",
+    "timeout": 30
+  }
+}
+```
+
+**Output**: Execution results, output, and runtime observations.
+
+---
+
+### 8. PR Summarizer Agent (`pr_summarizer.py`)
+**Intent**: `pr_summary`
+**Status**: ✅ Fully functional with Claude API integration
+
+**Purpose**: Pull request summary generation with structured analysis.
+
+**Features**:
+- Aggregated change analysis
+- Impact assessment
+- Structured Markdown reports
+- Integration with review agents
+- Release note generation
+
+**Analysis Includes**:
+- Code changes summary
+- Breaking changes identification
+- Testing recommendations
+- Deployment considerations
+
+**Usage**:
+```json
+{
+  "intent": "pr_summary",
+  "params": {
+    "pr_number": 123,
+    "repository": "owner/repo"
+  }
+}
+```
+
+**Output**: Comprehensive PR summary in Markdown format.
+
+---
+
+### 9. Orchestrator Agent (`orchestrator_agent.py`)
+**Intent**: `orchestrate`
+**Status**: ✅ Fully functional
+
+**Purpose**: Multi-agent workflow coordination and pipeline management.
+
+**Features**:
+- Agent sequencing and delegation
+- Workflow state management
+- Cross-agent communication
+- Error handling and recovery
+- Pipeline visualization
+
+**Workflow Types**:
+- Sequential agent execution
+- Parallel processing coordination
+- Conditional branching
+- Error recovery workflows
+
+**Usage**:
+```json
+{
+  "intent": "orchestrate",
+  "params": {
+    "workflow": "full_review",
+    "agents": ["code_review", "security_audit", "test_engineer"]
+  }
+}
+```
+
+**Output**: Orchestrated workflow results with agent coordination logs.
+
+---
+
+## Agent Communication
+
+### Event Bus System
+All agents communicate through the centralized event bus (`event_bus.py`):
+
+```python
+class EventBus:
+    async def publish(self, event: AgentUpdate) -> None
+    def subscribe(self) -> asyncio.Queue
+    def unsubscribe(self, queue: asyncio.Queue) -> None
+```
+
+### Status Updates
+Agents emit real-time status updates:
+- `idle` - Agent is ready for tasks
+- `running` - Agent is processing a task
+- `complete` - Task completed successfully
+- `error` - Task failed with error
+
+### Task Routing
+The `TaskRouter` class automatically routes tasks to appropriate agents based on intent:
+
+```python
+router.register_route("code_review", "code-review")
+router.register_route("security_audit", "security-auditor")
+# ... etc
+```
+
+## Agent Management
+
+### Registration
+Agents are registered with the `AgentManager`:
+
+```python
+manager = AgentManager(event_bus)
+manager.register_agent(code_review_agent)
+```
+
+### Task Execution
+Tasks are executed asynchronously:
+
+```python
+output = await manager.run_task(agent_name, task)
+```
+
+## Security Features
+
+### Input Validation
+All agents implement secure input validation:
+- File path validation to prevent directory traversal
+- Parameter sanitization
+- Content length limits
+- Command injection prevention
+
+### Authentication
+API endpoints require Bearer token authentication:
+```bash
+curl -H "Authorization: Bearer your-api-key" ...
+```
+
+### Secure Secrets Management
+Agents use the secure secrets management system:
+- System keyring storage
+- Encrypted file backup
+- AWS Secrets Manager integration
+- Zero secrets in code
+
+## Monitoring and Metrics
+
+### Prometheus Integration
+All agents are monitored via Prometheus metrics:
+- Request counts by agent and status
+- Response times and latency
+- Error rates and types
+- Resource utilization
+
+### Real-time Updates
+WebSocket endpoint provides real-time agent status:
+```javascript
+const ws = new WebSocket('ws://localhost:8001/updates');
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+  console.log(`Agent ${update.agent_name}: ${update.status}`);
+};
+```
+
+## Development Guidelines
+
+### Adding New Agents
+
+1. **Inherit from BaseAgent**:
+```python
+from agents.base import BaseAgent
+
+class MyAgent(BaseAgent):
+    async def run(self, task: Task) -> AgentOutput:
+        # Implementation here
+        pass
+```
+
+2. **Register with Manager**:
+```python
+my_agent = MyAgent("my-agent", event_bus=event_bus)
+manager.register_agent(my_agent)
+router.register_route("my_intent", my_agent.name)
+```
+
+3. **Implement Security**:
+- Validate all inputs
+- Sanitize parameters
+- Implement timeout controls
+- Add proper error handling
+
+4. **Add Documentation**:
+- Update this AGENTS.md file
+- Add docstrings following Google style
+- Include usage examples
+- Document security considerations
+
+### Testing Agents
+
+Use the provided test utilities:
+```python
+# Test agent functionality
+python test_agent_functionality.py
+
+# Verify agent registration
+python -c "from agent_manager import AgentManager; print(manager.agents.keys())"
+```
+
+## Batch Processing Benefits
+
+### Cost Optimization
+- **60-80% token reduction** through batch processing
+- Single API calls instead of per-file processing
+- Smart content truncation for large projects
+- Token limits to prevent excessive costs
+
+### Enhanced Analysis
+- Cross-file context awareness
+- Holistic architectural understanding
+- Integration-focused testing
+- System-wide pattern detection
+
+### Quality Improvements
+- Comprehensive coverage across modules
+- Architectural improvements spanning multiple files
+- Risk assessment with full codebase context
+- Coordinated refactoring recommendations
+
+---
+
+For more information, see the main [README.md](README.md) file and the API documentation.

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Dict, Callable
 
-from .models import Task
+try:
+    from .models import Task
+except ImportError:
+    from models import Task
 
 
 class TaskRouter:

@@ -8,8 +8,14 @@ try:
     from ..models import AgentOutput, Task  # type: ignore
     from ..event_bus import EventBus  # type: ignore
 except ImportError:  # Fallback when 'agents' is imported as top-level
-    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
-    from backend.orchestrator.event_bus import EventBus  # type: ignore
+    import sys
+    import os
+    # Add parent directory to path to find models and event_bus
+    parent_dir = os.path.dirname(os.path.dirname(__file__))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from models import AgentOutput, Task  # type: ignore
+    from event_bus import EventBus  # type: ignore
 
 
 class BaseAgent(abc.ABC):

@@ -7,9 +7,16 @@ import os
 sys.path.append('backend/orchestrator')
 
 from backend.orchestrator.models import Task
+# Standard ``pytest-asyncio`` marker makes the coroutine test explicit and
+# prevents collection-time warnings when that plugin is present.
+
 from backend.orchestrator.agents.docstring_generator import DocstringGeneratorAgent
 
 
+import pytest
+
+
+@pytest.mark.asyncio
 async def test_batch_processing():
     """Test the batch processing functionality of the DocstringGeneratorAgent."""
     print("🚀 Testing Batch Docstring Processing")

@@ -129,13 +129,57 @@ npm run dev
 ## API Endpoints
 
 ### REST API
-- **POST `/task`** - Submit a task for agent processing
-  - `intent`: Task type (code_review, security_audit, etc.)
-  - `files`: Optional list of files to process
-  - `params`: Optional dictionary of parameters (e.g., `{'directory': '/path/to/code'}`)
+
+#### POST `/task` - Submit a task for agent processing
+**Authentication**: Bearer token required
+
+**Request Format:**
+```json
+{
+  "intent": "string",           // Required: Task type (see supported intents below)
+  "files": ["string"],         // Optional: List of file paths to process
+  "params": {"key": "value"}   // Optional: Dictionary of parameters
+}
+```
+
+**Supported Intents:**
+- `code_review` - Comprehensive code quality analysis
+- `test_engineer` - Integration test generation  
+- `security_audit` - Security vulnerability analysis
+- `generate_docstrings` - Documentation generation
+- `refactor` - Code refactoring recommendations
+- `annotate_diff` - Git diff explanations
+- `pr_summary` - Pull request summaries
+- `execute` - Code execution in sandbox
+- `orchestrate` - Multi-agent workflow coordination
+
+**Response:**
+```json
+{
+  "task_id": "uuid",
+  "agent": "agent-name",
+  "status": "queued",
+  "message": "Task queued for processing"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8001/task \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "intent": "code_review",
+    "files": ["app.py"],
+    "params": {"directory": "/path/to/code"}
+  }'
+```
 
 ### WebSocket
 - **WS `/updates`** - Real-time agent status updates and task results
+
+### Metrics
+- **GET `/metrics`** - Prometheus metrics endpoint for monitoring
 
 ## Agent Types
 
@@ -209,8 +253,9 @@ npm run dev
 
 ### Code Review (Batch)
 ```bash
-curl -X POST "http://localhost:8000/task" \
+curl -X POST "http://localhost:8001/task" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
   -d '{
     "intent": "code_review",
     "params": {"directory": "/path/to/project", "extensions": [".py", ".js"]}
@@ -219,8 +264,9 @@ curl -X POST "http://localhost:8000/task" \
 
 ### Integration Test Generation
 ```bash
-curl -X POST "http://localhost:8000/task" \
+curl -X POST "http://localhost:8001/task" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
   -d '{
     "intent": "test_engineer", 
     "params": {"directory": "/path/to/project"}
@@ -229,8 +275,9 @@ curl -X POST "http://localhost:8000/task" \
 
 ### Architectural Refactoring Analysis
 ```bash
-curl -X POST "http://localhost:8000/task" \
+curl -X POST "http://localhost:8001/task" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
   -d '{
     "intent": "refactor",
     "params": {"directory": "/path/to/project"}
