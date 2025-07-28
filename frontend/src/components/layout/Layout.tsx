@@ -8,8 +8,18 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Button,
+  Tooltip,
+  Chip,
 } from '@mui/material'
-import { Menu as MenuIcon } from '@mui/icons-material'
+import {
+  Menu as MenuIcon,
+  Logout as LogoutIcon,
+  Wifi as WifiIcon,
+  WifiOff as WifiOffIcon,
+} from '@mui/icons-material'
+import { useAuth } from '../../contexts/AuthContext'
+import { useWebSocket } from '../../hooks/useWebSocket'
 import Sidebar from './Sidebar'
 import { drawerWidth } from './constants'
 
@@ -21,9 +31,15 @@ export default function Layout({ children }: LayoutProps) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { logout } = useAuth()
+  const { isConnected } = useWebSocket()
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
+  }
+
+  const handleLogout = () => {
+    logout()
   }
 
   return (
@@ -38,19 +54,44 @@ export default function Layout({ children }: LayoutProps) {
       >
         <Toolbar>
           {isMobile && (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
+            <Tooltip title="Open navigation menu">
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Tooltip>
           )}
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             DevSecOps Orchestrator
           </Typography>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Tooltip title={isConnected ? 'Connected to backend' : 'Disconnected from backend'}>
+              <Chip
+                icon={isConnected ? <WifiIcon /> : <WifiOffIcon />}
+                label={isConnected ? 'Connected' : 'Offline'}
+                color={isConnected ? 'success' : 'error'}
+                size="small"
+                variant="outlined"
+              />
+            </Tooltip>
+            
+            <Tooltip title="Sign out of DevSecOps Orchestrator">
+              <Button
+                color="inherit"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{ ml: 1 }}
+              >
+                Logout
+              </Button>
+            </Tooltip>
+          </Box>
         </Toolbar>
       </AppBar>
 

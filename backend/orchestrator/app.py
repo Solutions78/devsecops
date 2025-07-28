@@ -320,6 +320,73 @@ async def general_exception_handler(request, exc):
     )
 
 
+@app.get("/health")
+async def health_check(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Health check endpoint for API validation."""
+    return {
+        "status": "healthy",
+        "timestamp": asyncio.get_event_loop().time(),
+        "message": "DevSecOps Orchestrator is running",
+        "authenticated": True
+    }
+
+
+@app.get("/agents")
+async def get_agents(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Get status of all agents."""
+    # Mock agent data for now
+    agents = [
+        {"name": "code-review", "status": "idle", "last_updated": "2024-01-20T10:30:00Z", "tasks_completed": 15},
+        {"name": "security-auditor", "status": "idle", "last_updated": "2024-01-20T10:25:00Z", "tasks_completed": 8},
+        {"name": "test-engineer", "status": "idle", "last_updated": "2024-01-20T10:20:00Z", "tasks_completed": 12},
+        {"name": "docstring-generator", "status": "idle", "last_updated": "2024-01-20T10:15:00Z", "tasks_completed": 20},
+        {"name": "refactorer", "status": "idle", "last_updated": "2024-01-20T10:10:00Z", "tasks_completed": 6},
+        {"name": "diff-annotator", "status": "idle", "last_updated": "2024-01-20T10:05:00Z", "tasks_completed": 9},
+        {"name": "execution", "status": "idle", "last_updated": "2024-01-20T10:00:00Z", "tasks_completed": 3},
+        {"name": "pr-summarizer", "status": "idle", "last_updated": "2024-01-20T09:55:00Z", "tasks_completed": 11},
+        {"name": "orchestrator", "status": "idle", "last_updated": "2024-01-20T09:50:00Z", "tasks_completed": 4},
+    ]
+    return {"data": agents, "status": "success"}
+
+
+@app.get("/tasks")
+async def get_tasks(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Get all tasks."""
+    # Mock task data for now
+    tasks = [
+        {
+            "id": "task-001",
+            "intent": "code_review",
+            "status": "completed",
+            "agent_name": "code-review",
+            "created_at": "2024-01-20T09:30:00Z",
+            "updated_at": "2024-01-20T09:35:00Z",
+            "result": "Code review completed successfully"
+        },
+        {
+            "id": "task-002", 
+            "intent": "security_audit",
+            "status": "running",
+            "agent_name": "security-auditor",
+            "created_at": "2024-01-20T10:00:00Z",
+            "updated_at": "2024-01-20T10:00:00Z"
+        }
+    ]
+    return {"data": tasks, "status": "success"}
+
+
+@app.get("/metrics")
+async def get_metrics(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Get system metrics."""
+    return {
+        "cpu_usage": 25,
+        "memory_usage": 68,
+        "disk_usage": 45,
+        "uptime": 86400,
+        "status": "success"
+    }
+
+
 @app.post("/task", 
           summary="Submit a task for agent processing",
           response_description="Task submission confirmation with task ID and assigned agent")

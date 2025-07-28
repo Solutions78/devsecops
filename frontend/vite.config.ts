@@ -7,12 +7,32 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': {
+      '/health': {
         target: 'http://localhost:8001',
         changeOrigin: true,
         secure: false,
       },
-      '/ws': {
+      '/task': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/agents': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/tasks': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/metrics': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/updates': {
         target: 'ws://localhost:8001',
         ws: true,
       },

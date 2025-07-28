@@ -36,7 +36,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: '/api',
+      baseURL: '',
       timeout: 30000,
     })
 
@@ -90,11 +90,14 @@ class ApiClient {
   // Authentication
   async validateApiKey(key: string): Promise<boolean> {
     try {
-      await this.client.get('/health', {
-        headers: { Authorization: `Bearer ${key}` }
+      const response = await this.client.get('/health', {
+        headers: { Authorization: `Bearer ${key}` },
+        timeout: 10000, // 10 second timeout
       })
-      return true
-    } catch {
+      console.log('API validation response:', response.status)
+      return response.status === 200
+    } catch (error: any) {
+      console.error('API validation error:', error.response?.status, error.message)
       return false
     }
   }

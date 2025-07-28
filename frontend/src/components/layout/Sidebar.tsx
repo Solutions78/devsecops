@@ -16,7 +16,7 @@ import {
   SmartToy as AgentsIcon,
   Assignment as TasksIcon,
   Security as SecurityIcon,
-  Monitoring as MonitoringIcon,
+  Monitor as MonitoringIcon,
   Settings as SettingsIcon,
   CloudQueue as AzureIcon,
 } from '@mui/icons-material'
