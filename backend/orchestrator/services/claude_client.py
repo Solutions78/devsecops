@@ -5,6 +5,7 @@ import json
 import httpx
 from typing import Dict, Any, Optional
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +17,49 @@ class ClaudeAPIClient:
         """Initialize Claude API client.
         
         Args:
-            api_key: Anthropic API key (defaults to environment variable)
+            api_key: Anthropic API key (defaults to secure storage)
             model: Claude model to use for processing
         """
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        self.api_key = api_key
         self.model = model
+        self._api_key_retrieved = False
         self.base_url = "https://api.anthropic.com/v1"
+        
+        # We'll retrieve the key from secure storage when needed
+        
+    async def _get_api_key(self) -> Optional[str]:
+        """Retrieve API key from secure storage if not already provided."""
+        if self.api_key:
+            return self.api_key
+        
+        if not self._api_key_retrieved:
+            try:
+                # Import here to avoid circular imports
+                from ..security import get_secret
+                # Try multiple possible key names for backward compatibility
+                for key_name in ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY']:
+                    api_key = await get_secret(key_name)
+                    if api_key:
+                        self.api_key = api_key
+                        logger.debug(f"Retrieved API key from secure storage: {key_name}")
+                        break
+                
+                if not self.api_key:
+                    # Fallback to environment variable for migration period
+                    self.api_key = os.getenv("ANTHROPIC_API_KEY")
+                    if self.api_key:
+                        logger.warning("Using API key from environment variable - migrate to secure storage")
+                
+                self._api_key_retrieved = True
+                
+            except Exception as e:
+                logger.error(f"Error retrieving API key from secure storage: {e}")
+                self._api_key_retrieved = True
         
         if not self.api_key:
             logger.warning("No Claude API key found. Agent responses will be analysis-only.")
+        
+        return self.api_key
     
     async def process_batch_prompt(self, prompt: str, max_tokens: int = 4000) -> Dict[str, Any]:
         """Process a batch prompt using Claude API.
@@ -36,7 +71,7 @@ class ClaudeAPIClient:
         Returns:
             Dict containing the response and metadata
         """
-        if not self.api_key:
+        if not api_key:
             return {
                 "status": "API_UNAVAILABLE",
                 "message": "No Claude API key configured",
@@ -47,7 +82,7 @@ class ClaudeAPIClient:
         try:
             headers = {
                 "Content-Type": "application/json",
-                "x-api-key": self.api_key,
+                "x-api-key": api_key,
                 "anthropic-version": "2023-06-01"
             }
             

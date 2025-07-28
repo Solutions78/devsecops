@@ -69,20 +69,54 @@ This project follows a modern full-stack architecture with:
 - Claude API Key (Anthropic) for full agent functionality
 
 ### Backend Setup
+
+#### 🔒 Secure Key Management (Recommended)
+```bash
+# Install dependencies including security packages
+pip install -r requirements.txt
+
+# Set up secure key management (migrates from .env if present)
+python setup_secure_keys.py
+
+# Start the orchestrator with secure keys
+cd backend && uvicorn orchestrator.app:app --reload --port 8001
+```
+
+#### 🔧 Manual Key Management
+```bash
+# Set API keys securely
+python backend/orchestrator/scripts/manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
+python backend/orchestrator/scripts/manage_secrets.py set-key API_KEY your-api-key
+
+# List all keys
+python backend/orchestrator/scripts/manage_secrets.py list-keys
+
+# Rotate keys
+python backend/orchestrator/scripts/manage_secrets.py rotate-key API_KEY
+```
+
+#### 🚨 Legacy Setup (NOT RECOMMENDED)
 ```bash
 cd backend/orchestrator
 pip install -r requirements.txt
 
-# Configure Claude API (required for full functionality)
+# INSECURE: Only for development
 export ANTHROPIC_API_KEY="your-claude-api-key-here"
 
 uvicorn app:app --reload
 ```
 
+### 🔐 Security Features
+- **Multi-Backend Storage**: System keyring, encrypted files, AWS Secrets Manager
+- **API Key Authentication**: Bearer token authentication for all endpoints
+- **Secure Migration**: Automatic migration from .env files
+- **Key Rotation**: Built-in key rotation with management utilities
+- **Zero Secrets in Code**: No hardcoded API keys or credentials
+
 ### Claude API Configuration
-All batch processing agents now integrate with Claude API for actual functionality:
-- **Required**: Set `ANTHROPIC_API_KEY` environment variable
-- **Model**: Uses `claude-3-5-sonnet-20241022` by default
+All batch processing agents integrate with secure Claude API key management:
+- **Secure Storage**: API keys stored in system keyring or encrypted files
+- **Model**: Uses `claude-3-5-sonnet-20241022` by default  
 - **Fallback**: Agents provide analysis-only mode without API key
 - **Cost Optimization**: Batch processing reduces token usage by ~60-80%
 
@@ -205,13 +239,46 @@ curl -X POST "http://localhost:8000/task" \
 
 ## Configuration Requirements
 
+### 🔐 Secure Deployment Configuration
+
+#### Production Security Checklist
+- ✅ **API Keys**: Migrate from .env files to secure storage
+- ✅ **Authentication**: Enable API key authentication (set `API_KEY`)
+- ✅ **HTTPS**: Use HTTPS in production with proper SSL certificates
+- ✅ **CORS**: Configure specific allowed origins (not wildcard)
+- ✅ **Rate Limiting**: Implement request rate limiting
+- ✅ **Monitoring**: Set up security event monitoring
+- ✅ **Backups**: Regular encrypted backups of secrets
+
+#### Environment-Specific Keys
+```bash
+# Development
+python manage_secrets.py set-key API_KEY dev-api-key-123
+
+# Staging  
+python manage_secrets.py set-key API_KEY staging-api-key-456
+
+# Production
+python manage_secrets.py set-key API_KEY prod-api-key-789
+```
+
+#### AWS Secrets Manager (Production)
+```bash
+# Configure AWS credentials
+aws configure
+
+# Keys will automatically sync to AWS Secrets Manager
+python manage_secrets.py set-key ANTHROPIC_API_KEY your-claude-key
+```
+
 ### Claude API Integration
-**Status**: ✅ **Fully implemented** as of 2025-07-27
-- All batch processing agents now integrate with Claude API for full functionality
-- Comprehensive security auditing with OWASP Top 10 vulnerability detection
+**Status**: ✅ **Fully implemented** with secure key management
+- All batch processing agents integrate with secure Claude API key storage
+- Comprehensive security auditing with OWASP Top 10 vulnerability detection  
 - Actual file modifications for docstring generation
-- **Requirements**: Set `ANTHROPIC_API_KEY` environment variable for full functionality
+- **Requirements**: Set `ANTHROPIC_API_KEY` in secure storage for full functionality
 - **Fallback Mode**: All agents provide detailed analysis without API key
+- **Security**: No API keys stored in code or environment variables
 
 ## Development Tools
 

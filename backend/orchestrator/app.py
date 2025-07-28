@@ -30,6 +30,7 @@ from .event_bus import EventBus
 from .models import Task, AgentUpdate
 from .agent_manager import AgentManager
 from .task_router import TaskRouter
+from .security import get_secret
 from .agents import (
     CodeReviewAgent,
     TestEngineerAgent,
@@ -124,15 +125,32 @@ router.register_route("orchestrate", orchestrator_agent.name)
 security = HTTPBearer(auto_error=False)
 
 async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Basic API key verification for production security."""
-    # For development, this is optional. In production, make this required.
-    api_key = os.getenv('API_KEY')
-    if api_key and credentials:
-        if credentials.credentials != api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API key"
-            )
+    """Secure API key verification using secrets manager."""
+    # Get API key from secure storage
+    api_key = await get_secret('API_KEY')
+    
+    # If no API key is configured, allow access (development mode)
+    if not api_key:
+        logger.warning("No API key configured - running in development mode")
+        return credentials
+    
+    # Require credentials when API key is set
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Verify the provided key
+    if credentials.credentials != api_key:
+        logger.warning(f"Invalid API key attempt from user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key"
+        )
+    
+    logger.debug("API key verified successfully")
     return credentials
 
 
