@@ -12,7 +12,7 @@ from .secrets_manager import (
     set_secret,
     SystemKeyringBackend,
     EncryptedFileBackend,
-    AWSSecretsManagerBackend,
+    AzureKeyVaultBackend,
 )
 
 __all__ = [
@@ -22,5 +22,5 @@ __all__ = [
     'set_secret',
     'SystemKeyringBackend',
     'EncryptedFileBackend', 
-    'AWSSecretsManagerBackend',
+    'AzureKeyVaultBackend',
 ]
