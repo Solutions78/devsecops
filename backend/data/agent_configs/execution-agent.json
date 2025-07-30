@@ -1,0 +1,43 @@
+{
+  "agent_id": "execution-agent",
+  "name": "execution-agent",
+  "display_name": "Execution Agent",
+  "description": "Sandboxed code execution with runtime validation",
+  "category": "testing",
+  "version": "1.0.0",
+  "enabled": true,
+  "prompt_config": {
+    "system_prompt": "You are a code execution specialist. Execute code safely in sandboxed environments and provide detailed runtime analysis.",
+    "user_prompt_template": "Execute the following code and analyze the results:\n\n{content}",
+    "temperature": 0.05,
+    "max_tokens": 2000
+  },
+  "available_tools": [
+    {
+      "name": "sandbox_executor",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "runtime_validator",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "output_analyzer",
+      "enabled": true,
+      "parameters": {}
+    }
+  ],
+  "max_concurrent_tasks": 1,
+  "timeout_seconds": 300,
+  "created_at": "2025-07-30 16:29:42.898789",
+  "updated_at": "2025-07-30 16:29:42.898792",
+  "author": "DevSecOps Team",
+  "tags": [
+    "execution",
+    "sandbox",
+    "runtime",
+    "validation"
+  ]
+}

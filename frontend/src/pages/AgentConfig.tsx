@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import {
   Box,
   Typography,
@@ -61,6 +62,64 @@ const categoryColors = {
   orchestration: 'secondary',
 } as const
 
+// Master list of all available tools across all agent types
+const getAllAvailableTools = () => [
+  // Analysis Tools
+  'file_analysis',
+  'code_analyzer',
+  'dependency_analyzer',
+  'complexity_analyzer',
+  'pattern_detector',
+
+  // Security Tools  
+  'security_scan',
+  'vulnerability_scanner',
+  'owasp_checker',
+  'secret_detector',
+  'compliance_checker',
+
+  // Testing Tools
+  'test_generator',
+  'coverage_analyzer',
+  'mock_creator',
+  'integration_tester',
+
+  // Documentation Tools
+  'docstring_formatter',
+  'type_analyzer',
+  'api_documenter',
+  
+  // Development Tools
+  'dependency_check',
+  'dependency_mapper',
+  'refactoring_analyzer',
+  'code_formatter',
+
+  // Execution Tools
+  'sandbox_executor',
+  'runtime_validator',
+  'output_analyzer',
+  'performance_profiler',
+
+  // Git/Version Control Tools
+  'diff_parser',
+  'impact_analyzer',
+  'change_summarizer',
+  'commit_analyzer',
+
+  // Review/Summary Tools
+  'change_analyzer',
+  'summary_formatter',
+  'reviewer_helper',
+  'quality_metrics',
+
+  // Orchestration Tools
+  'workflow_planner',
+  'task_coordinator',
+  'dependency_manager',
+  'result_aggregator',
+]
+
 interface AgentConfigDialogProps {
   open: boolean
   onClose: () => void
@@ -116,6 +175,36 @@ function AgentConfigDialog({ open, onClose, agentConfig, onSave }: AgentConfigDi
       ...config,
       available_tools: updatedTools,
     })
+  }
+
+  const handleToolChange = (toolName: string, enabled: boolean) => {
+    if (!config) return
+
+    const existingToolIndex = config.available_tools.findIndex(t => t.name === toolName)
+    
+    if (enabled) {
+      // Add or enable the tool
+      if (existingToolIndex >= 0) {
+        // Tool exists, just enable it
+        updateTool(existingToolIndex, 'enabled', true)
+      } else {
+        // Add new tool
+        const newTool = {
+          name: toolName,
+          enabled: true,
+          parameters: {}
+        }
+        setConfig({
+          ...config,
+          available_tools: [...config.available_tools, newTool]
+        })
+      }
+    } else {
+      // Disable or remove the tool
+      if (existingToolIndex >= 0) {
+        updateTool(existingToolIndex, 'enabled', false)
+      }
+    }
   }
 
   if (!config) return null
@@ -265,26 +354,48 @@ function AgentConfigDialog({ open, onClose, agentConfig, onSave }: AgentConfigDi
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
-                  {config.available_tools.map((tool, index) => (
-                    <Grid item xs={12} key={tool.name}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <FormControlLabel
-                              control={
-                                <Switch
-                                  checked={tool.enabled}
-                                  onChange={(e) => updateTool(index, 'enabled', e.target.checked)}
-                                />
-                              }
-                              label={tool.name}
-                              sx={{ flex: 1 }}
-                            />
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
+                  {getAllAvailableTools().map((toolName) => {
+                    const existingToolIndex = config.available_tools.findIndex(t => t.name === toolName)
+                    const isEnabled = existingToolIndex >= 0 ? config.available_tools[existingToolIndex].enabled : false
+                    const toolExists = existingToolIndex >= 0
+
+                    return (
+                      <Grid item xs={12} sm={6} key={toolName}>
+                        <Card variant="outlined" sx={{ 
+                          opacity: toolExists ? 1 : 0.7,
+                          border: toolExists && isEnabled ? '2px solid' : undefined,
+                          borderColor: toolExists && isEnabled ? 'primary.main' : undefined 
+                        }}>
+                          <CardContent sx={{ py: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={isEnabled}
+                                    onChange={(e) => handleToolChange(toolName, e.target.checked)}
+                                    disabled={!isAdministrator}
+                                  />
+                                }
+                                label={
+                                  <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: toolExists ? 'medium' : 'normal' }}>
+                                      {toolName}
+                                    </Typography>
+                                    {!toolExists && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        Available to add
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                }
+                                sx={{ flex: 1 }}
+                              />
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    )
+                  })}
                 </Grid>
               </AccordionDetails>
             </Accordion>
@@ -340,6 +451,7 @@ function AgentConfigDialog({ open, onClose, agentConfig, onSave }: AgentConfigDi
 }
 
 export default function AgentConfig() {
+  const { isAdministrator } = useAuth()
   const [selectedAgent, setSelectedAgent] = useState<AgentConfiguration | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
@@ -355,7 +467,7 @@ export default function AgentConfig() {
 
   // Initialize default configurations
   const initializeMutation = useMutation({
-    mutationFn: () => apiClient.initializeDefaultConfigurations(),
+    mutationFn: (force: boolean = false) => apiClient.initializeDefaultConfigurations(force),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-configurations'] })
       setSnackbar({ open: true, message: 'Default configurations initialized successfully', severity: 'success' })
@@ -389,7 +501,11 @@ export default function AgentConfig() {
   }
 
   const handleInitialize = () => {
-    initializeMutation.mutate()
+    initializeMutation.mutate(false)
+  }
+
+  const handleForceRefresh = () => {
+    initializeMutation.mutate(true)
   }
 
   if (isLoading) {
@@ -418,6 +534,15 @@ export default function AgentConfig() {
             onClick={() => queryClient.invalidateQueries({ queryKey: ['agent-configurations'] })}
           >
             Refresh
+          </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            startIcon={<RefreshIcon />}
+            onClick={handleForceRefresh}
+            disabled={initializeMutation.isPending}
+          >
+            Force Refresh Configs
           </Button>
           {configurations.length === 0 && (
             <Button

@@ -44,6 +44,41 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAdministrator, isLoading } = useAuth()
+  const location = useLocation()
+
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={48} />
+        <Typography variant="body1" color="text.secondary">
+          Connecting to DevSecOps Orchestrator...
+        </Typography>
+      </Box>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  if (!isAdministrator) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
 function AppContent() {
   const { isAuthenticated } = useAuth()
   const { connect, disconnect } = useWebSocket()
@@ -73,7 +108,7 @@ function AppContent() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/agents" element={<AgentConfig />} />
                   <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/security" element={<Security />} />
+                  <Route path="/security" element={<AdminRoute><Security /></AdminRoute>} />
                   <Route path="/monitoring" element={<Monitoring />} />
                   <Route path="/settings" element={<Settings />} />
                 </Routes>

@@ -18,8 +18,7 @@ export const useWebSocket = createStableHook(() => {
         return
       }
 
-      const apiKey = localStorage.getItem('devsecops_api_key') || undefined
-      websocketService.connect(apiKey)
+      websocketService.connect()
     }, [])
 
     const disconnect = useCallback(() => {

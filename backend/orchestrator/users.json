@@ -1,0 +1,18 @@
+{
+  "IKsX1_nMs0a1cbwx2s1zOEeNtBqjkS1cBdzL__chYhY": {
+    "api_key": "IKsX1_nMs0a1cbwx2s1zOEeNtBqjkS1cBdzL__chYhY",
+    "role": "administrator",
+    "created_at": "2025-07-30T16:31:34.577361",
+    "last_used": "2025-07-30T16:48:47.413464",
+    "description": "Primary administrator - created automatically",
+    "created_by": "system"
+  },
+  "Eqi1o1Mqbd9GkdK3nm8iitQXw2kFUxJ7W1j4IiRHQ1s": {
+    "api_key": "Eqi1o1Mqbd9GkdK3nm8iitQXw2kFUxJ7W1j4IiRHQ1s",
+    "role": "user",
+    "created_at": "2025-07-30T16:41:23.700130",
+    "last_used": "2025-07-30T16:45:12.019846",
+    "description": "Test-User",
+    "created_by": "IKsX1_nMs0a1cbwx2s1zOEeNtBqjkS1cBdzL__chYhY"
+  }
+}

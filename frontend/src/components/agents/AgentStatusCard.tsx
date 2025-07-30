@@ -26,32 +26,38 @@ interface AgentStatusCardProps {
 
 const statusConfig = {
   idle: {
-    color: 'success' as const,
+    chipColor: 'success' as const,
+    iconColor: 'success' as const,
     icon: CompleteIcon,
     label: 'Online',
   },
   running: {
-    color: 'warning' as const,
+    chipColor: 'warning' as const,
+    iconColor: 'warning' as const,
     icon: RunningIcon,
     label: 'Running',
   },
   complete: {
-    color: 'success' as const,
+    chipColor: 'success' as const,
+    iconColor: 'success' as const,
     icon: CompleteIcon,
     label: 'Complete',
   },
   error: {
-    color: 'error' as const,
+    chipColor: 'error' as const,
+    iconColor: 'error' as const,
     icon: ErrorIcon,
     label: 'Error',
   },
   offline: {
-    color: 'error' as const,
+    chipColor: 'error' as const,
+    iconColor: 'error' as const,
     icon: ErrorIcon,
     label: 'Offline',
   },
   unknown: {
-    color: 'inherit' as const,
+    chipColor: 'default' as const,
+    iconColor: 'inherit' as const,
     icon: UnknownIcon,
     label: 'Unknown',
   },
@@ -59,7 +65,8 @@ const statusConfig = {
 
 // Default config for unrecognized statuses
 const defaultConfig = {
-  color: 'inherit' as const,
+  chipColor: 'default' as const,
+  iconColor: 'inherit' as const,
   icon: UnknownIcon,
   label: 'Unknown',
 }
@@ -115,7 +122,7 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Box sx={{ position: 'relative', mr: 2 }}>
-            <StatusIcon color={config.color} />
+            <StatusIcon color={config.iconColor} />
             {agent.status === 'running' && (
               <CircularProgress
                 size={24}
@@ -134,7 +141,7 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
             </Typography>
             <Chip
               label={config.label}
-              color={config.color}
+              color={config.chipColor}
               size="small"
               sx={{ mt: 0.5 }}
             />

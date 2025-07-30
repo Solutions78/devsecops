@@ -35,13 +35,13 @@ class WebSocketService {
     this.emit('status', { connected })
   }
 
-  connect(apiKey?: string): void {
+  connect(): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       return
     }
 
     // Use environment variable for WebSocket URL, fallback to direct backend URL for development  
-    const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8001'
+    const apiBase = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8001'
     let wsUrl: string
     
     if (apiBase.startsWith('/')) {

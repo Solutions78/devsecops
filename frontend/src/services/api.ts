@@ -68,7 +68,7 @@ class ApiClient {
 
   constructor() {
     // Use environment variable for API base URL, fallback to direct backend URL for development
-    const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8001'
+    const apiBase = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8001'
     
     this.client = axios.create({
       baseURL: apiBase,
@@ -174,8 +174,8 @@ class ApiClient {
     return response.data.data
   }
 
-  async initializeDefaultConfigurations(): Promise<AgentConfiguration[]> {
-    const response = await this.client.post<ApiResponse<AgentConfiguration[]>>('/agents/configs/initialize')
+  async initializeDefaultConfigurations(force: boolean = false): Promise<AgentConfiguration[]> {
+    const response = await this.client.post<ApiResponse<AgentConfiguration[]>>(`/agents/configs/initialize?force=${force}`)
     return response.data.data
   }
 
@@ -209,6 +209,40 @@ class ApiClient {
   async getMetrics(): Promise<any> {
     const response = await this.client.get('/metrics')
     return response.data
+  }
+
+  // User management
+  async getUserRole(): Promise<string> {
+    const response = await this.client.get<ApiResponse<{ role: string }>>('/user/role')
+    return response.data.data.role
+  }
+
+  async listUsers(): Promise<any[]> {
+    const response = await this.client.get<ApiResponse<any[]>>('/users')
+    return response.data.data
+  }
+
+  async createUser(role: 'administrator' | 'user', description?: string): Promise<{ api_key: string; role: string; description?: string }> {
+    const response = await this.client.post<ApiResponse<{ api_key: string; role: string; description?: string }>>('/users', {
+      role,
+      description
+    })
+    return response.data.data
+  }
+
+  async deleteUser(apiKey: string): Promise<void> {
+    await this.client.delete(`/users/${apiKey}`)
+  }
+
+  // Secret management
+  async getSecretValue(secretName: string): Promise<{ name: string; value: string }> {
+    const response = await this.client.get<ApiResponse<{ name: string; value: string }>>(`/secrets/${secretName}`)
+    return response.data.data
+  }
+
+  async listSecrets(): Promise<any[]> {
+    const response = await this.client.get<ApiResponse<any[]>>('/secrets')
+    return response.data.data
   }
 }
 

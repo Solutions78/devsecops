@@ -11,6 +11,7 @@ import {
   Typography,
   Chip,
 } from '@mui/material'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   Dashboard as DashboardIcon,
   SmartToy as AgentsIcon,
@@ -47,6 +48,7 @@ const navigation = [
     path: '/security',
     icon: SecurityIcon,
     description: 'Azure Key Vault',
+    adminOnly: true,
   },
   {
     title: 'Monitoring',
@@ -63,6 +65,15 @@ const navigation = [
 export default function Sidebar({ onMobileClose }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { isAdministrator } = useAuth()
+
+  // Filter navigation items based on user role
+  const visibleNavigation = navigation.filter(item => {
+    if (item.adminOnly && !isAdministrator) {
+      return false
+    }
+    return true
+  })
 
   const handleNavigation = (path: string) => {
     navigate(path)
@@ -107,7 +118,7 @@ export default function Sidebar({ onMobileClose }: SidebarProps) {
       </Box>
 
       <List sx={{ flex: 1, px: 1 }}>
-        {navigation.map((item) => {
+        {visibleNavigation.map((item) => {
           const isActive = location.pathname === item.path
           const IconComponent = item.icon
 

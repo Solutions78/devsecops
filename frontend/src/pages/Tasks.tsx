@@ -17,7 +17,6 @@ import {
   Divider,
 } from '@mui/material'
 import {
-  Assignment as TaskIcon,
   CheckCircle as CompleteIcon,
   Error as ErrorIcon,
   PlayArrow as RunningIcon,
@@ -163,6 +162,8 @@ export default function Tasks() {
                                 )}
                               </Box>
                             }
+                            primaryTypographyProps={{ component: 'div' }}
+                            secondaryTypographyProps={{ component: 'div' }}
                           />
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             {(task.status === 'pending' || task.status === 'running') && (

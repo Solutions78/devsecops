@@ -5,6 +5,8 @@ import { createStableHook, createStableProvider, enableHMR } from '../utils/hmr'
 interface AuthContextType {
   isAuthenticated: boolean
   apiKey: string | null
+  userRole: string | null
+  isAdministrator: boolean
   login: (apiKey: string) => Promise<boolean>
   logout: () => void
   isLoading: boolean
@@ -20,6 +22,7 @@ interface AuthProviderProps {
 const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [apiKey, setApiKey] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // Use useCallback to ensure stable function references across re-renders
@@ -34,6 +37,17 @@ const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
         apiClient.setApiKey(key)
         setApiKey(key)
         setIsAuthenticated(true)
+        
+        // Fetch user role
+        try {
+          const role = await apiClient.getUserRole()
+          setUserRole(role)
+          console.log('User role:', role)
+        } catch (roleError) {
+          console.error('Error fetching user role:', roleError)
+          setUserRole('user') // Default to user role
+        }
+        
         console.log('Authentication successful')
       } else {
         // Invalid key, remove it
@@ -41,6 +55,7 @@ const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
         localStorage.removeItem('devsecops_api_key')
         apiClient.clearApiKey()
         setApiKey(null)
+        setUserRole(null)
         setIsAuthenticated(false)
       }
     } catch (error) {
@@ -48,6 +63,7 @@ const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
       localStorage.removeItem('devsecops_api_key')
       apiClient.clearApiKey()
       setApiKey(null)
+      setUserRole(null)
       setIsAuthenticated(false)
     }
     setIsLoading(false)
@@ -64,6 +80,17 @@ const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
         apiClient.setApiKey(key)
         setApiKey(key)
         setIsAuthenticated(true)
+        
+        // Fetch user role
+        try {
+          const role = await apiClient.getUserRole()
+          setUserRole(role)
+          console.log('User role:', role)
+        } catch (roleError) {
+          console.error('Error fetching user role:', roleError)
+          setUserRole('user') // Default to user role
+        }
+        
         console.log('Login successful')
         setIsLoading(false)
         return true
@@ -81,6 +108,7 @@ const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
   const logout = useCallback(() => {
     apiClient.clearApiKey()
     setApiKey(null)
+    setUserRole(null)
     setIsAuthenticated(false)
   }, [])
 
@@ -106,10 +134,12 @@ const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
   const contextValue = useMemo(() => ({
     isAuthenticated,
     apiKey,
+    userRole,
+    isAdministrator: userRole === 'administrator',
     login,
     logout,
     isLoading
-  }), [isAuthenticated, apiKey, login, logout, isLoading])
+  }), [isAuthenticated, apiKey, userRole, login, logout, isLoading])
 
   return (
     <AuthContext.Provider value={contextValue}>

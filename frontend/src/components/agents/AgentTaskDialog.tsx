@@ -35,12 +35,70 @@ const allowedIntents: string[] = [
   'orchestrate',
 ]
 
+// Example parameters for each intent type
+const getExampleParams = (intent: string): string => {
+  const examples: Record<string, any> = {
+    code_review: {
+      directory: "/path/to/project",
+      extensions: [".py", ".js", ".ts"],
+      exclude_patterns: ["node_modules", "__pycache__", "*.min.js"],
+      focus_areas: ["security", "performance", "maintainability"]
+    },
+    security_audit: {
+      directory: "/path/to/project", 
+      scan_types: ["owasp_top10", "secrets", "dependencies"],
+      severity_threshold: "medium",
+      compliance_standards: ["nist", "owasp"]
+    },
+    test_engineer: {
+      directory: "/path/to/project/src",
+      test_types: ["unit", "integration"],
+      coverage_target: 90,
+      framework: "pytest"
+    },
+    generate_docstrings: {
+      directory: "/path/to/project",
+      style: "google",
+      overwrite_existing: false,
+      include_private: true
+    },
+    refactor: {
+      directory: "/path/to/project",
+      focus_areas: ["complexity", "duplication", "patterns"],
+      max_complexity: 10
+    },
+    annotate_diff: {
+      diff_file: "/path/to/changes.diff",
+      context_lines: 3,
+      include_impact_analysis: true
+    },
+    pr_summary: {
+      pr_url: "https://github.com/user/repo/pull/123",
+      include_test_changes: true,
+      format: "markdown"
+    },
+    execute: {
+      script_path: "/path/to/script.py",
+      environment: "sandbox",
+      timeout_seconds: 300
+    },
+    orchestrate: {
+      workflow: "full_review",
+      agents: ["code_review", "security_audit", "test_engineer"],
+      parallel: false,
+      directory: "/path/to/project"
+    }
+  }
+  
+  return JSON.stringify(examples[intent] || {}, null, 2)
+}
+
 export default function AgentTaskDialog({ open, onClose, agent }: AgentTaskDialogProps) {
   const isIdle = agent.status === 'idle'
 
   // --- Form state (only used when the agent is idle) -----------------------
   const [intent, setIntent] = useState<string>('code_review')
-  const [params, setParams] = useState<string>('{}')
+  const [params, setParams] = useState<string>(getExampleParams('code_review'))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -81,7 +139,11 @@ export default function AgentTaskDialog({ open, onClose, agent }: AgentTaskDialo
         fullWidth
         margin="dense"
         value={intent}
-        onChange={(e) => setIntent(e.target.value)}
+        onChange={(e) => {
+          const newIntent = e.target.value
+          setIntent(newIntent)
+          setParams(getExampleParams(newIntent))
+        }}
       >
         {allowedIntents.map((opt) => (
           <MenuItem key={opt} value={opt}>
@@ -94,10 +156,16 @@ export default function AgentTaskDialog({ open, onClose, agent }: AgentTaskDialo
         fullWidth
         margin="dense"
         multiline
-        minRows={4}
+        minRows={6}
         value={params}
         onChange={(e) => setParams(e.target.value)}
-        placeholder='{"directory": "/path/to/project"}'
+        helperText="Parameters automatically update when you change the intent. Customize as needed."
+        sx={{
+          '& .MuiInputBase-input': {
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+          }
+        }}
       />
       {error && (
         <Alert severity="error" sx={{ mt: 2 }}>

@@ -40,7 +40,7 @@ export function createStableProvider<T extends React.ComponentType<any>>(
   Provider: T,
   displayName: string
 ): T {
-  const StableProvider = React.memo(Provider) as T
+  const StableProvider = React.memo(Provider) as unknown as T
   StableProvider.displayName = displayName
   return StableProvider
 }
@@ -50,8 +50,8 @@ export function createStableProvider<T extends React.ComponentType<any>>(
  * Call this at the end of files that export hooks or components.
  */
 export function enableHMR(): void {
-  if (import.meta.hot) {
-    import.meta.hot.accept()
+  if ((import.meta as any).hot) {
+    (import.meta as any).hot.accept()
   }
 }
 

@@ -2,6 +2,108 @@
 
 A modern, enterprise-grade AI-powered platform for automating software development security and operations through specialized agents. Built with React + TypeScript frontend and FastAPI backend, featuring Azure Key Vault integration and real-time monitoring.
 
+---
+## System Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Log Sources
+        A[EDR] --- B[Windows Events]
+        B --- C[Linux Audit]
+        C --- D[Network Devices]
+        D --- E[Cloud Logs]
+        E --- F[Identity Logs]
+        F --- G[Container Logs]
+    end
+
+    LogSources --> IngestionLayer
+
+    subgraph Ingestion Layer
+        H[REST API Endpoints]
+        I[Stream Processors]
+        J[Batch Importers]
+
+        H --> H1[/ingest/edr]
+        H --> H2[/ingest/windows]
+        H --> H3[/ingest/linux]
+
+        I --> I1[WebSocket/SSE]
+        I --> I2[Kafka Consumer]
+        I --> I3[Message Queue]
+
+        J --> J1[File Upload]
+        J --> J2[S3 Polling]
+        J --> J3[SFTP Monitor]
+    end
+
+    IngestionLayer --> NormalizationEngine
+
+    subgraph Normalization Engine
+        K[Priority Classification]
+        L[Schema Mapping]
+        M[Field Extraction]
+
+        K --> K1[Priority 1 (Critical)]
+        K --> K2[Priority 2 (High)]
+        K --> K3[Priority 3 (Medium)]
+
+        L --> L1[Common Event Schema (CES)]
+        L --> L2[Custom Fields]
+
+        M --> M1[Timestamp Parse]
+        M --> M2[Host Extraction]
+        M --> M3[User Extraction]
+    end
+
+    NormalizationEngine --> DataLayer
+
+    subgraph Data Layer
+        N[PostgreSQL Database]
+        N --> N1[logs table]
+        N --> N2[events index]
+        N --> N3[metadata tables]
+    end
+
+    DataLayer --> APILayer
+
+    subgraph API Layer
+        O[FastAPI Backend]
+        P[Authentication]
+        Q[Query Engine]
+
+        O --> O1[REST Endpoints]
+        O --> O2[WebSocket]
+        O --> O3[Pagination]
+
+        P --> P1[JWT Tokens]
+        P --> P2[Role-Based Access Control]
+
+        Q --> Q1[Time Range Filter]
+        Q2[Severity Filter]
+        Q3[Host Filter]
+    end
+
+    APILayer --> FrontendLayer
+
+    subgraph Frontend Layer
+        R[React Application]
+        R --> R1[Dashboard]
+        R --> R2[Log Browser]
+        R --> R3[Log Details]
+
+        R1 --> R1a[Metrics]
+        R1 --> R1b[Charts]
+        R1 --> R1c[Alerts]
+
+        R2 --> R2a[Filters]
+        R2 --> R2b[Search]
+        R2 --> R2c[Export]
+
+        R3 --> R3a[Raw View]
+        R3 --> R3b[Context]
+        R3 --> R3c[Timeline]
+    end
+
 ## 🚀 Latest Features (v2.0)
 
 - ✅ **Professional React + TypeScript Frontend** with Material-UI dark theme

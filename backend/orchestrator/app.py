@@ -199,20 +199,18 @@ for route_name, agent_name in routes.items():
     router.register_route(route_name, agent_name)
 
 
+# Import user management
+try:
+    from .user_management import user_manager
+except ImportError:
+    from user_management import user_manager
+
 # Security: Basic authentication
 security = HTTPBearer(auto_error=False)
 
 async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Secure API key verification using secrets manager."""
-    # Get API key from secure storage
-    api_key = await get_secret('API_KEY')
-    
-    # If no API key is configured, allow access (development mode)
-    if not api_key:
-        logger.warning("No API key configured - running in development mode")
-        return credentials
-    
-    # Require credentials when API key is set
+    """Secure API key verification using user management system."""
+    # Require credentials
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -220,16 +218,30 @@ async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(sec
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Verify the provided key
-    if credentials.credentials != api_key:
-        logger.warning(f"Invalid API key attempt from user")
+    # Verify the provided key using user management
+    if not user_manager.is_valid_user(credentials.credentials):
+        logger.warning(f"Invalid API key attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key"
         )
     
-    logger.debug("API key verified successfully")
     return credentials
+
+async def verify_admin_key(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Verify that the API key belongs to an administrator."""
+    if not user_manager.is_administrator(credentials.credentials):
+        logger.warning(f"Non-admin user attempted to access admin endpoint")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator access required"
+        )
+    
+    return credentials
+
+def get_current_user_role(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)) -> str:
+    """Get the current user's role."""
+    return user_manager.get_user_role(credentials.credentials) or "user"
 
 
 # Security: Add security headers middleware
@@ -341,6 +353,163 @@ async def health_check(credentials: HTTPAuthorizationCredentials = Depends(verif
         "authenticated": True
     }
 
+@app.get("/user/role")
+async def get_user_role(role: str = Depends(get_current_user_role)):
+    """Get the current user's role."""
+    return {
+        "data": {"role": role},
+        "status": "success"
+    }
+
+@app.get("/users")
+async def list_users(credentials: HTTPAuthorizationCredentials = Depends(verify_admin_key)):
+    """List all users (admin only)."""
+    try:
+        users = user_manager.list_users()
+        return {
+            "data": users,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error listing users: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list users"
+        )
+
+@app.post("/users")
+async def create_user(
+    request: dict = Body(...),
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_key)
+):
+    """Create a new user (admin only)."""
+    try:
+        role = request.get("role", "user")
+        description = request.get("description")
+        
+        if role not in ["administrator", "user"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role must be 'administrator' or 'user'"
+            )
+        
+        api_key = user_manager.create_user(
+            role=role,
+            description=description,
+            created_by=credentials.credentials
+        )
+        
+        return {
+            "data": {
+                "api_key": api_key,
+                "role": role,
+                "description": description
+            },
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create user"
+        )
+
+@app.delete("/users/{api_key}")
+async def delete_user(
+    api_key: str,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_key)
+):
+    """Delete a user (admin only)."""
+    try:
+        success = user_manager.delete_user(api_key, credentials.credentials)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found or cannot be deleted"
+            )
+        
+        return {
+            "data": {"deleted": True},
+            "status": "success"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete user"
+        )
+
+@app.get("/secrets/{secret_name}")
+async def get_secret_value(
+    secret_name: str,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)
+):
+    """Get a secret value from secure storage."""
+    try:
+        # Get the secret value from secure storage
+        secret_value = await get_secret(secret_name)
+        
+        if not secret_value:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Secret '{secret_name}' not found"
+            )
+        
+        return {
+            "data": {
+                "name": secret_name,
+                "value": secret_value
+            },
+            "status": "success"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving secret '{secret_name}': {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve secret"
+        )
+
+@app.get("/secrets")
+async def list_secrets(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """List all available secrets."""
+    try:
+        # This is a mock implementation - in a real system, you'd query your secret store
+        secrets = [
+            {
+                "name": "API_KEY",
+                "created": "2024-01-15T10:00:00Z",
+                "updated": "2024-01-15T10:00:00Z",
+                "version": "1"
+            },
+            {
+                "name": "ANTHROPIC_API_KEY", 
+                "created": "2024-01-16T11:00:00Z",
+                "updated": "2024-01-20T14:30:00Z",
+                "version": "2"
+            },
+            {
+                "name": "DATABASE_URL",
+                "created": "2024-01-10T09:00:00Z", 
+                "updated": "2024-01-18T16:45:00Z",
+                "version": "3"
+            }
+        ]
+        
+        return {
+            "data": secrets,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error listing secrets: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list secrets"
+        )
+
 
 @app.get("/agents")
 async def get_agents(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
@@ -417,7 +586,7 @@ async def get_agent_config(
 async def update_agent_config(
     agent_id: str,
     updates: dict = Body(...),
-    credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_key)
 ):
     """Update configuration for a specific agent."""
     try:
@@ -450,10 +619,25 @@ async def update_agent_config(
 
 
 @app.post("/agents/configs/initialize")
-async def initialize_default_configs(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
-    """Initialize default configurations for all agents."""
+async def initialize_default_configs(
+    force: bool = False,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_key)
+):
+    """Initialize default configurations for all agents.
+    
+    Args:
+        force: If True, clears existing configurations and recreates all defaults
+    """
     try:
         from .agent_config import config_manager
+        
+        if force:
+            # Clear existing configurations
+            config_manager.configs.clear()
+            # Remove config files from disk
+            for config_file in config_manager.config_dir.glob("*.json"):
+                config_file.unlink()
+        
         config_manager.create_default_configs()
         
         configs = config_manager.get_all_configs()
@@ -462,7 +646,7 @@ async def initialize_default_configs(credentials: HTTPAuthorizationCredentials =
         return {
             "data": config_list, 
             "status": "success", 
-            "message": f"Initialized {len(config_list)} agent configurations"
+            "message": f"{'Force-' if force else ''}Initialized {len(config_list)} agent configurations"
         }
     except Exception as e:
         logger.error(f"Error initializing agent configs: {e}")

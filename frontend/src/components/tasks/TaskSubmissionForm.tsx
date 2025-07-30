@@ -22,7 +22,6 @@ import {
   SmartToy as AgentIcon,
   Code as CodeIcon,
   Security as SecurityIcon,
-  BugReport as BugIcon,
   Description as DocsIcon,
   Transform as RefactorIcon,
   Assessment as TestIcon,

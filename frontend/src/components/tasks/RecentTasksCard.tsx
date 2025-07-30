@@ -101,6 +101,8 @@ export default function RecentTasksCard({ tasks, isLoading }: RecentTasksCardPro
                           </Typography>
                         </Box>
                       }
+                      primaryTypographyProps={{ component: 'div' }}
+                      secondaryTypographyProps={{ component: 'div' }}
                     />
                   </ListItem>
                   {index < tasks.length - 1 && (
