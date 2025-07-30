@@ -6,103 +6,89 @@ A modern, enterprise-grade AI-powered platform for automating software developme
 ## System Architecture Diagram
 
 ```mermaid
-graph TD
-    subgraph Log Sources
-        A[EDR] --- B[Windows Events]
-        B --- C[Linux Audit]
-        C --- D[Network Devices]
-        D --- E[Cloud Logs]
-        E --- F[Identity Logs]
-        F --- G[Container Logs]
-    end
+flowchart TD
+    %% Log Sources
+    A[EDR] --> H
+    B[Windows Events] --> H
+    C[Linux Audit] --> H
+    D[Network Devices] --> H
+    E[Cloud Logs] --> H
+    F[Identity Logs] --> H
+    G[Container Logs] --> H
 
-    LogSources --> IngestionLayer
+    %% Ingestion Layer
+    H[REST API Endpoints] --> K
+    I[Stream Processors] --> K
+    J[Batch Importers] --> K
 
-    subgraph Ingestion Layer
-        H[REST API Endpoints]
-        I[Stream Processors]
-        J[Batch Importers]
+    H --> H1[Ingest EDR]
+    H --> H2[Ingest Windows]
+    H --> H3[Ingest Linux]
 
-        H --> H1[/ingest/edr]
-        H --> H2[/ingest/windows]
-        H --> H3[/ingest/linux]
+    I --> I1[WebSocket/SSE]
+    I --> I2[Kafka Consumer]
+    I --> I3[Message Queue]
 
-        I --> I1[WebSocket/SSE]
-        I --> I2[Kafka Consumer]
-        I --> I3[Message Queue]
+    J --> J1[File Upload]
+    J --> J2[S3 Polling]
+    J --> J3[SFTP Monitor]
 
-        J --> J1[File Upload]
-        J --> J2[S3 Polling]
-        J --> J3[SFTP Monitor]
-    end
+    %% Normalization Engine
+    K[Priority Classification] --> N
+    L[Schema Mapping] --> N
+    M[Field Extraction] --> N
 
-    IngestionLayer --> NormalizationEngine
+    K --> K1[Priority 1 Critical]
+    K --> K2[Priority 2 High]
+    K --> K3[Priority 3 Medium]
 
-    subgraph Normalization Engine
-        K[Priority Classification]
-        L[Schema Mapping]
-        M[Field Extraction]
+    L --> L1[Common Event Schema]
+    L --> L2[Custom Fields]
 
-        K --> K1[Priority 1 (Critical)]
-        K --> K2[Priority 2 (High)]
-        K --> K3[Priority 3 (Medium)]
+    M --> M1[Timestamp Parse]
+    M --> M2[Host Extraction]
+    M --> M3[User Extraction]
 
-        L --> L1[Common Event Schema (CES)]
-        L --> L2[Custom Fields]
+    %% Data Layer
+    N[PostgreSQL Database] --> O
+    N --> N1[logs table]
+    N --> N2[events index]
+    N --> N3[metadata tables]
 
-        M --> M1[Timestamp Parse]
-        M --> M2[Host Extraction]
-        M --> M3[User Extraction]
-    end
+    %% API Layer
+    O[FastAPI Backend] --> R
+    P[Authentication] --> R
+    Q[Query Engine] --> R
 
-    NormalizationEngine --> DataLayer
+    O --> O1[REST Endpoints]
+    O --> O2[WebSocket]
+    O --> O3[Pagination]
 
-    subgraph Data Layer
-        N[PostgreSQL Database]
-        N --> N1[logs table]
-        N --> N2[events index]
-        N --> N3[metadata tables]
-    end
+    P --> P1[JWT Tokens]
+    P --> P2[Role-Based Access Control]
 
-    DataLayer --> APILayer
+    Q --> Q1[Time Range Filter]
+    Q --> Q2[Severity Filter]
+    Q --> Q3[Host Filter]
 
-    subgraph API Layer
-        O[FastAPI Backend]
-        P[Authentication]
-        Q[Query Engine]
+    %% Frontend Layer
+    R[React Application]
+    R --> R1[Dashboard]
+    R --> R2[Log Browser]
+    R --> R3[Log Details]
 
-        O --> O1[REST Endpoints]
-        O --> O2[WebSocket]
-        O --> O3[Pagination]
+    R1 --> R1a[Metrics]
+    R1 --> R1b[Charts]
+    R1 --> R1c[Alerts]
 
-        P --> P1[JWT Tokens]
-        P --> P2[Role-Based Access Control]
+    R2 --> R2a[Filters]
+    R2 --> R2b[Search]
+    R2 --> R2c[Export]
 
-        Q --> Q1[Time Range Filter]
-        Q2[Severity Filter]
-        Q3[Host Filter]
-    end
-
-    APILayer --> FrontendLayer
-
-    subgraph Frontend Layer
-        R[React Application]
-        R --> R1[Dashboard]
-        R --> R2[Log Browser]
-        R --> R3[Log Details]
-
-        R1 --> R1a[Metrics]
-        R1 --> R1b[Charts]
-        R1 --> R1c[Alerts]
-
-        R2 --> R2a[Filters]
-        R2 --> R2b[Search]
-        R2 --> R2c[Export]
-
-        R3 --> R3a[Raw View]
-        R3 --> R3b[Context]
-        R3 --> R3c[Timeline]
-    end
+    R3 --> R3a[Raw View]
+    R3 --> R3b[Context]
+    R3 --> R3c[Timeline]
+```
 
 ## 🚀 Latest Features (v2.0)
 
