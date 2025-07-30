@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+The frontend will be available at `http://localhost:3005`
 
 ## 🔧 Configuration
 
@@ -198,7 +198,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
 RUN npm run build
-EXPOSE 3000
+EXPOSE 3005
 CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
 ```
 

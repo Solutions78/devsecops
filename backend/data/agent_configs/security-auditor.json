@@ -1,0 +1,43 @@
+{
+  "agent_id": "security-auditor",
+  "name": "security-auditor",
+  "display_name": "Security Auditor Agent",
+  "description": "OWASP Top 10 vulnerability detection and compliance checking",
+  "category": "security",
+  "version": "1.0.0",
+  "enabled": true,
+  "prompt_config": {
+    "system_prompt": "You are a cybersecurity expert conducting thorough security audits. Focus on OWASP Top 10 vulnerabilities, secure coding practices, and compliance requirements.",
+    "user_prompt_template": "Perform a comprehensive security audit on the following codebase:\n\n{content}",
+    "temperature": 0.05,
+    "max_tokens": 5000
+  },
+  "available_tools": [
+    {
+      "name": "vulnerability_scanner",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "owasp_checker",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "secret_detector",
+      "enabled": true,
+      "parameters": {}
+    }
+  ],
+  "max_concurrent_tasks": 1,
+  "timeout_seconds": 300,
+  "created_at": "2025-07-30 14:54:05.456429",
+  "updated_at": "2025-07-30 14:54:05.456434",
+  "author": "DevSecOps Team",
+  "tags": [
+    "security",
+    "audit",
+    "owasp",
+    "compliance"
+  ]
+}

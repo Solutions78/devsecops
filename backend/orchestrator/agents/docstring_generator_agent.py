@@ -12,7 +12,7 @@ try:
 except ImportError:  # Fallback when package imported as top-level
     from backend.orchestrator.models import AgentOutput, Task  # type: ignore
 
-from .base import BaseAgent
+from .base_agent import BaseAgent
 # Optional batch mixin (skip if not available in stripped-down env)
 try:
     from ..services.claude_client import BatchProcessingMixin  # type: ignore

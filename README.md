@@ -65,16 +65,37 @@ A modern, enterprise-grade AI-powered platform for automating software developme
 - **Node.js 18+** with npm
 - **Azure account** (optional, for Key Vault integration)
 
-### 1. Backend Setup
+### 1. Environment Setup
 
 ```bash
-# Navigate to backend directory
+# Copy environment template and configure
+cp env.template .env
+
+# Edit .env file with your configuration
+# The defaults should work for local development
+```
+
+### 2. Quick Start (Recommended)
+
+```bash
+# Start backend (automatically loads .env)
+./start_backend.sh
+
+# In another terminal, start frontend
+./start_frontend.sh
+```
+
+### 3. Manual Setup
+
+#### Backend Setup
+```bash
+# Navigate to backend directory  
 cd backend
 
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Generate and configure API key
+# Generate and configure API key (if not in .env)
 python -c "
 import asyncio
 import secrets
@@ -90,14 +111,13 @@ asyncio.run(setup())
 "
 
 # Start the backend server
-uvicorn orchestrator.app:app --reload --port 8001
+uvicorn orchestrator.app:app --reload --host localhost --port 8001
 ```
 
-### 2. Frontend Setup
-
+#### Frontend Setup
 ```bash
 # Navigate to frontend directory
-cd frontend
+cd frontend  
 
 # Install Node.js dependencies
 npm install
@@ -108,7 +128,7 @@ npm run dev
 
 ### 3. Access the Application
 
-1. **Open your browser** to `http://localhost:3000`
+1. **Open your browser** to `http://localhost:3005`
 2. **Login** with your generated API key
 3. **Explore the dashboard** - view agent status, submit tasks, manage secrets
 4. **Submit your first task** - try a code review or security audit
@@ -205,11 +225,20 @@ FastAPI + Python 3.9+
 
 ### Environment Variables
 
+The application uses environment variables for configuration. Copy `env.template` to `.env` and configure:
+
 ```bash
+# Frontend Configuration
+VITE_API_BASE=/api                    # API base path for frontend
+
+# Backend Configuration  
+BACKEND_HOST=localhost                # Backend server host
+BACKEND_PORT=8001                    # Backend server port
+
 # Core Configuration
-API_KEY=your-generated-api-key
-ANTHROPIC_API_KEY=your-claude-api-key
-OPENAI_API_KEY=your-openai-api-key
+API_KEY=your-generated-api-key       # Your DevSecOps API key
+ANTHROPIC_API_KEY=your-claude-api-key # Optional: Claude API key
+OPENAI_API_KEY=your-openai-api-key   # Optional: OpenAI API key
 
 # Azure Key Vault (Enterprise)
 AZURE_KEY_VAULT_URL=https://your-vault.vault.azure.net/
@@ -259,7 +288,7 @@ docker run -d -p 8001:8001 \
 
 # Frontend
 docker build -t devsecops-frontend ./frontend
-docker run -d -p 3000:3000 devsecops-frontend
+docker run -d -p 3005:3005 devsecops-frontend
 ```
 
 #### Manual Deployment

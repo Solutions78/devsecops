@@ -1,0 +1,43 @@
+{
+  "agent_id": "test-engineer",
+  "name": "test-engineer",
+  "display_name": "Test Engineer Agent",
+  "description": "Integration test generation with 90% coverage targets",
+  "category": "testing",
+  "version": "1.0.0",
+  "enabled": true,
+  "prompt_config": {
+    "system_prompt": "You are a test automation expert. Generate comprehensive test suites with high coverage, including unit tests, integration tests, and edge cases.",
+    "user_prompt_template": "Generate comprehensive tests for the following code:\n\n{content}",
+    "temperature": 0.2,
+    "max_tokens": 3000
+  },
+  "available_tools": [
+    {
+      "name": "test_generator",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "coverage_analyzer",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "mock_creator",
+      "enabled": true,
+      "parameters": {}
+    }
+  ],
+  "max_concurrent_tasks": 1,
+  "timeout_seconds": 300,
+  "created_at": "2025-07-30 14:54:05.456955",
+  "updated_at": "2025-07-30 14:54:05.456961",
+  "author": "DevSecOps Team",
+  "tags": [
+    "testing",
+    "automation",
+    "coverage",
+    "quality"
+  ]
+}

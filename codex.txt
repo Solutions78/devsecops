@@ -1,0 +1,32 @@
+# codex.config.toml
+
+# Set default profile for all codex CLI sessions
+profile = "gpt-4o"
+
+# Top-level model (fallback only)
+model = "gpt-4o"
+approval_policy = "on-failure"
+disable_response_storage = false
+
+# Declare OpenAI Chat Completions provider (used by all profiles below)
+[model_providers.openai-chat-completions]
+name = "OpenAI via Chat Completions API"
+base_url = "https://api.openai.com/v1"
+env_key = "OPENAI_API_KEY"
+wire_api = "chat"
+
+# GPT-4o (Best for reasoning, code, and dev workflows)
+[profiles.gpt-4o]
+model = "gpt-4o"
+model_provider = "openai-chat-completions"
+approval_policy = "on-failure"
+model_reasoning_effort = "high"
+model_reasoning_summary = "detailed"
+disable_response_storage = false
+
+# GPT-3.5 Turbo (fallback or fast-mode)
+[profiles.gpt-3.5]
+model = "gpt-3.5-turbo"
+model_provider = "openai-chat-completions"
+approval_policy = "on-failure"
+disable_response_storage = true

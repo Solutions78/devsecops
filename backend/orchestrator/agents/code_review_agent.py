@@ -8,9 +8,15 @@ from typing import List, Dict, Optional, Set
 try:
     from ..models import AgentOutput, Task  # type: ignore
 except ImportError:
-    from backend.orchestrator.models import AgentOutput, Task  # type: ignore
+    import sys
+    import os
+    # Add the backend directory to Python path
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    from orchestrator.models import AgentOutput, Task  # type: ignore
 
-from .base import BaseAgent
+from .base_agent import BaseAgent
 # Optional mixin for external Claude client
 try:
     from ..services.claude_client import BatchProcessingMixin  # type: ignore

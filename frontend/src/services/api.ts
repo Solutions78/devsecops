@@ -8,7 +8,7 @@ export interface ApiResponse<T = any> {
 
 export interface AgentStatus {
   name: string
-  status: 'idle' | 'running' | 'complete' | 'error'
+  status: 'idle' | 'running' | 'complete' | 'error' | 'offline'
   last_updated: string
   tasks_completed: number
   current_task?: string
@@ -30,18 +30,57 @@ export interface TaskResult {
   error?: string
 }
 
+export interface AgentPromptConfig {
+  system_prompt: string
+  user_prompt_template: string
+  temperature: number
+  max_tokens?: number
+}
+
+export interface ToolConfig {
+  name: string
+  enabled: boolean
+  parameters: Record<string, any>
+}
+
+export interface AgentConfiguration {
+  agent_id: string
+  name: string
+  display_name: string
+  description: string
+  category: string
+  version: string
+  enabled: boolean
+  prompt_config: AgentPromptConfig
+  available_tools: ToolConfig[]
+  max_concurrent_tasks: number
+  timeout_seconds: number
+  created_at: string
+  updated_at: string
+  author: string
+  tags: string[]
+}
+
 class ApiClient {
   private client: AxiosInstance
   private apiKey: string | null = null
+  private onAuthError: (() => void) | null = null
 
   constructor() {
+    // Use environment variable for API base URL, fallback to direct backend URL for development
+    const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8001'
+    
     this.client = axios.create({
-      baseURL: '',
+      baseURL: apiBase,
       timeout: 30000,
     })
 
     this.setupInterceptors()
     this.loadApiKey()
+  }
+
+  public setAuthErrorHandler(handler: () => void): void {
+    this.onAuthError = handler
   }
 
   private setupInterceptors(): void {
@@ -62,7 +101,13 @@ class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           this.clearApiKey()
-          window.location.href = '/login'
+          // Use callback instead of direct navigation to maintain React state
+          if (this.onAuthError) {
+            this.onAuthError()
+          } else {
+            // Fallback to direct navigation if no handler is set
+            window.location.href = '/login'
+          }
         }
         return Promise.reject(error)
       }
@@ -110,6 +155,27 @@ class ApiClient {
 
   async getAgentStatus(agentName: string): Promise<AgentStatus> {
     const response = await this.client.get<ApiResponse<AgentStatus>>(`/agents/${agentName}`)
+    return response.data.data
+  }
+
+  // Agent configuration endpoints
+  async getAgentConfigurations(): Promise<AgentConfiguration[]> {
+    const response = await this.client.get<ApiResponse<AgentConfiguration[]>>('/agents/configs')
+    return response.data.data
+  }
+
+  async getAgentConfiguration(agentId: string): Promise<AgentConfiguration> {
+    const response = await this.client.get<ApiResponse<AgentConfiguration>>(`/agents/configs/${agentId}`)
+    return response.data.data
+  }
+
+  async updateAgentConfiguration(agentId: string, updates: Partial<AgentConfiguration>): Promise<AgentConfiguration> {
+    const response = await this.client.put<ApiResponse<AgentConfiguration>>(`/agents/configs/${agentId}`, updates)
+    return response.data.data
+  }
+
+  async initializeDefaultConfigurations(): Promise<AgentConfiguration[]> {
+    const response = await this.client.post<ApiResponse<AgentConfiguration[]>>('/agents/configs/initialize')
     return response.data.data
   }
 

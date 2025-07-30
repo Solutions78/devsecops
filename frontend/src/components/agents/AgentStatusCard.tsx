@@ -11,9 +11,14 @@ import {
   CheckCircle as CompleteIcon,
   Error as ErrorIcon,
   PlayArrow as RunningIcon,
-  Schedule as IdleIcon,
+  Help as UnknownIcon,
 } from '@mui/icons-material'
 import { AgentStatus } from '../../services/api'
+
+// New modal for task submission / status
+import AgentTaskDialog from './AgentTaskDialog'
+
+import { useState } from 'react'
 
 interface AgentStatusCardProps {
   agent: AgentStatus
@@ -21,9 +26,9 @@ interface AgentStatusCardProps {
 
 const statusConfig = {
   idle: {
-    color: 'info' as const,
-    icon: IdleIcon,
-    label: 'Idle',
+    color: 'success' as const,
+    icon: CompleteIcon,
+    label: 'Online',
   },
   running: {
     color: 'warning' as const,
@@ -40,11 +45,32 @@ const statusConfig = {
     icon: ErrorIcon,
     label: 'Error',
   },
+  offline: {
+    color: 'error' as const,
+    icon: ErrorIcon,
+    label: 'Offline',
+  },
+  unknown: {
+    color: 'inherit' as const,
+    icon: UnknownIcon,
+    label: 'Unknown',
+  },
+}
+
+// Default config for unrecognized statuses
+const defaultConfig = {
+  color: 'inherit' as const,
+  icon: UnknownIcon,
+  label: 'Unknown',
 }
 
 export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
-  const config = statusConfig[agent.status]
+  console.log('AgentStatusCard rendering with status:', agent.status, 'config:', statusConfig[agent.status as keyof typeof statusConfig]?.label)
+  const config = statusConfig[agent.status as keyof typeof statusConfig] || defaultConfig
   const StatusIcon = config.icon
+
+  // Local state to control the modal visibility
+  const [open, setOpen] = useState(false)
 
   const formatAgentName = (name: string) => {
     return name
@@ -72,11 +98,18 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
   }
 
   return (
+    <>
     <Card 
+      onClick={() => setOpen(true)}
       sx={{ 
         height: '100%',
+        cursor: 'pointer',
         border: agent.status === 'error' ? '1px solid' : undefined,
         borderColor: agent.status === 'error' ? 'error.main' : undefined,
+        transition: 'transform 0.15s ease-in-out',
+        '&:hover': {
+          transform: 'scale(1.02)',
+        },
       }}
     >
       <CardContent>
@@ -138,5 +171,7 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
         )}
       </CardContent>
     </Card>
+    <AgentTaskDialog open={open} onClose={() => setOpen(false)} agent={agent} />
+    </>
   )
 }

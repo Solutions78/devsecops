@@ -1,0 +1,43 @@
+{
+  "agent_id": "code-review",
+  "name": "code-review",
+  "display_name": "Code Review Agent",
+  "description": "Performs comprehensive code quality analysis with security vulnerability detection",
+  "category": "development",
+  "version": "1.0.0",
+  "enabled": true,
+  "prompt_config": {
+    "system_prompt": "You are a senior software engineer performing comprehensive code reviews. Focus on code quality, security vulnerabilities, performance issues, and best practices.",
+    "user_prompt_template": "Please review the following code files and provide detailed feedback:\n\n{content}",
+    "temperature": 0.1,
+    "max_tokens": 4000
+  },
+  "available_tools": [
+    {
+      "name": "file_analysis",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "security_scan",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "dependency_check",
+      "enabled": true,
+      "parameters": {}
+    }
+  ],
+  "max_concurrent_tasks": 1,
+  "timeout_seconds": 300,
+  "created_at": "2025-07-30 14:54:05.454403",
+  "updated_at": "2025-07-30 14:54:05.454420",
+  "author": "DevSecOps Team",
+  "tags": [
+    "code",
+    "review",
+    "security",
+    "quality"
+  ]
+}

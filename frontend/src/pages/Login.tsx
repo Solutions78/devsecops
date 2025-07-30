@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Box,
   Card,
@@ -24,7 +25,19 @@ export default function Login() {
   const [apiKey, setApiKey] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const { login, isLoading } = useAuth()
+  const { login, isLoading, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Get the intended destination from state or default to dashboard
+  const from = location.state?.from?.pathname || '/'
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true })
+    }
+  }, [isAuthenticated, navigate, from])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +52,7 @@ export default function Login() {
     if (!success) {
       setError('Invalid API key. Please check your credentials and try again.')
     }
+    // Navigation will be handled by the useEffect above when isAuthenticated changes
   }
 
   const handleTogglePasswordVisibility = () => {

@@ -19,7 +19,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, stat
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict
 
 # Prometheus instrumentation
 try:
@@ -27,6 +27,14 @@ try:
 except ModuleNotFoundError:  # Package may be missing in some dev envs
     Instrumentator = None  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+# Configuration from environment variables
+BACKEND_HOST = os.getenv('BACKEND_HOST', 'localhost')
+BACKEND_PORT = int(os.getenv('BACKEND_PORT', '8001'))
 
 # Handle both relative and absolute imports
 try:
@@ -128,7 +136,7 @@ if Instrumentator is not None:
     Instrumentator().instrument(app).expose(app)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Specific frontend origins only
+    allow_origins=["http://localhost:3005", "http://localhost:5173"],  # Specific frontend origins only
     allow_methods=["GET", "POST"],  # Only required methods
     allow_headers=["Content-Type", "Authorization"],  # Specific headers only
     allow_credentials=False
@@ -138,6 +146,9 @@ app.add_middleware(
 event_bus = EventBus()
 manager = AgentManager(event_bus)
 router = TaskRouter()
+
+# Task storage for tracking submitted tasks
+task_storage: Dict[str, dict] = {}
 
 # Create agent instances (only for available agents)
 agents = {}
@@ -334,44 +345,138 @@ async def health_check(credentials: HTTPAuthorizationCredentials = Depends(verif
 @app.get("/agents")
 async def get_agents(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
     """Get status of all agents."""
-    # Mock agent data for now
-    agents = [
-        {"name": "code-review", "status": "idle", "last_updated": "2024-01-20T10:30:00Z", "tasks_completed": 15},
-        {"name": "security-auditor", "status": "idle", "last_updated": "2024-01-20T10:25:00Z", "tasks_completed": 8},
-        {"name": "test-engineer", "status": "idle", "last_updated": "2024-01-20T10:20:00Z", "tasks_completed": 12},
-        {"name": "docstring-generator", "status": "idle", "last_updated": "2024-01-20T10:15:00Z", "tasks_completed": 20},
-        {"name": "refactorer", "status": "idle", "last_updated": "2024-01-20T10:10:00Z", "tasks_completed": 6},
-        {"name": "diff-annotator", "status": "idle", "last_updated": "2024-01-20T10:05:00Z", "tasks_completed": 9},
-        {"name": "execution", "status": "idle", "last_updated": "2024-01-20T10:00:00Z", "tasks_completed": 3},
-        {"name": "pr-summarizer", "status": "idle", "last_updated": "2024-01-20T09:55:00Z", "tasks_completed": 11},
-        {"name": "orchestrator", "status": "idle", "last_updated": "2024-01-20T09:50:00Z", "tasks_completed": 4},
-    ]
-    return {"data": agents, "status": "success"}
+    agent_list = []
+    
+    # Get real agent status from manager
+    for agent_key, agent in agents.items():
+        # Use the agent's actual name (not the dictionary key) for status lookup
+        status_info = await manager.get_agent_status(agent.name) if hasattr(manager, 'get_agent_status') else {
+            "status": "idle",
+            "last_updated": "2024-01-20T10:30:00Z",
+            "tasks_completed": 0
+        }
+        
+        agent_list.append({
+            "name": agent.name,
+            "status": status_info.get("status", "idle"),
+            "last_updated": status_info.get("last_updated", "2024-01-20T10:30:00Z"),
+            "tasks_completed": status_info.get("tasks_completed", 0),
+            "current_task": status_info.get("current_task")
+        })
+    
+    return {"data": agent_list, "status": "success"}
+
+
+@app.get("/agents/configs")
+async def get_agent_configs(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Get configurations for all agents."""
+    try:
+        from .agent_config import config_manager
+        configs = config_manager.get_all_configs()
+        
+        # Convert to list format for API response
+        config_list = []
+        for agent_id, config in configs.items():
+            config_dict = config.dict()
+            config_list.append(config_dict)
+        
+        return {"data": config_list, "status": "success"}
+    except Exception as e:
+        logger.error(f"Error getting agent configs: {e}")
+        return {"data": [], "status": "error", "message": str(e)}
+
+
+@app.get("/agents/configs/{agent_id}")
+async def get_agent_config(
+    agent_id: str, 
+    credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)
+):
+    """Get configuration for a specific agent."""
+    try:
+        from .agent_config import config_manager
+        config = config_manager.get_config(agent_id)
+        
+        if not config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Agent configuration not found: {agent_id}"
+            )
+        
+        return {"data": config.dict(), "status": "success"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting agent config {agent_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get agent configuration"
+        )
+
+
+@app.put("/agents/configs/{agent_id}")
+async def update_agent_config(
+    agent_id: str,
+    updates: dict = Body(...),
+    credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)
+):
+    """Update configuration for a specific agent."""
+    try:
+        from .agent_config import config_manager
+        
+        # Validate agent exists
+        if agent_id not in config_manager.configs:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Agent configuration not found: {agent_id}"
+            )
+        
+        updated_config = config_manager.update_config(agent_id, updates)
+        
+        if not updated_config:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to update agent configuration"
+            )
+        
+        return {"data": updated_config.dict(), "status": "success", "message": "Configuration updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating agent config {agent_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update agent configuration"
+        )
+
+
+@app.post("/agents/configs/initialize")
+async def initialize_default_configs(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
+    """Initialize default configurations for all agents."""
+    try:
+        from .agent_config import config_manager
+        config_manager.create_default_configs()
+        
+        configs = config_manager.get_all_configs()
+        config_list = [config.dict() for config in configs.values()]
+        
+        return {
+            "data": config_list, 
+            "status": "success", 
+            "message": f"Initialized {len(config_list)} agent configurations"
+        }
+    except Exception as e:
+        logger.error(f"Error initializing agent configs: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initialize agent configurations"
+        )
 
 
 @app.get("/tasks")
 async def get_tasks(credentials: HTTPAuthorizationCredentials = Depends(verify_api_key)):
     """Get all tasks."""
-    # Mock task data for now
-    tasks = [
-        {
-            "id": "task-001",
-            "intent": "code_review",
-            "status": "completed",
-            "agent_name": "code-review",
-            "created_at": "2024-01-20T09:30:00Z",
-            "updated_at": "2024-01-20T09:35:00Z",
-            "result": "Code review completed successfully"
-        },
-        {
-            "id": "task-002", 
-            "intent": "security_audit",
-            "status": "running",
-            "agent_name": "security-auditor",
-            "created_at": "2024-01-20T10:00:00Z",
-            "updated_at": "2024-01-20T10:00:00Z"
-        }
-    ]
+    # Return real task data from storage
+    tasks = list(task_storage.values())
     return {"data": tasks, "status": "success"}
 
 
@@ -488,8 +593,32 @@ async def submit_task(
             params=params or {}
         )
         
+        # Store task information
+        task_storage[task.task_id] = {
+            "id": task.task_id,
+            "intent": intent,
+            "status": "pending",
+            "agent_name": "",
+            "created_at": str(uuid.uuid4()),  # Using UUID as timestamp placeholder
+            "updated_at": str(uuid.uuid4()),  # Using UUID as timestamp placeholder
+        }
+        
         agent_name = router.route(task)
-        asyncio.create_task(manager.run_task(agent_name, task))
+        task_storage[task.task_id]["agent_name"] = agent_name
+        task_storage[task.task_id]["status"] = "queued"
+        
+        # Run task asynchronously and update status
+        async def run_and_update_task():
+            try:
+                task_storage[task.task_id]["status"] = "running"
+                result = await manager.run_task(agent_name, task)
+                task_storage[task.task_id]["status"] = "completed"
+                task_storage[task.task_id]["result"] = result.output if hasattr(result, 'output') else str(result)
+            except Exception as e:
+                task_storage[task.task_id]["status"] = "failed"
+                task_storage[task.task_id]["error"] = str(e)
+        
+        asyncio.create_task(run_and_update_task())
         
         # Security: Log without exposing sensitive parameters
         logger.info(f"Task {task.task_id} submitted with intent '{intent}' to agent '{agent_name}'")
@@ -594,3 +723,16 @@ async def updates(ws: WebSocket):
         if queue:
             event_bus.unsubscribe(queue)
             logger.info("WebSocket subscription cleaned up")
+
+
+# Main execution block for direct running
+if __name__ == "__main__":
+    import uvicorn
+    logger.info(f"Starting DevSecOps Orchestrator on {BACKEND_HOST}:{BACKEND_PORT}")
+    uvicorn.run(
+        "orchestrator.app:app",
+        host=BACKEND_HOST,
+        port=BACKEND_PORT,
+        reload=True,
+        log_level="info"
+    )

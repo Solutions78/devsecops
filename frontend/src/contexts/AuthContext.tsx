@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
 import apiClient from '../services/api'
+import { createStableHook, createStableProvider, enableHMR } from '../utils/hmr'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -15,22 +16,14 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+// Export the component with a stable reference for HMR
+const AuthProviderComponent = React.memo<AuthProviderProps>(({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    // Check for existing API key on app load
-    const storedKey = localStorage.getItem('devsecops_api_key')
-    if (storedKey) {
-      validateAndSetKey(storedKey)
-    } else {
-      setIsLoading(false)
-    }
-  }, [])
-
-  const validateAndSetKey = async (key: string) => {
+  // Use useCallback to ensure stable function references across re-renders
+  const validateAndSetKey = useCallback(async (key: string) => {
     setIsLoading(true)
     try {
       console.log('Validating API key...')
@@ -58,9 +51,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsAuthenticated(false)
     }
     setIsLoading(false)
-  }
+  }, [])
 
-  const login = async (key: string): Promise<boolean> => {
+  const login = useCallback(async (key: string): Promise<boolean> => {
     setIsLoading(true)
     try {
       console.log('Attempting login with API key')
@@ -83,25 +76,60 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(false)
       return false
     }
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     apiClient.clearApiKey()
     setApiKey(null)
     setIsAuthenticated(false)
-  }
+  }, [])
+
+  // Set up auth error handler for API client
+  React.useEffect(() => {
+    apiClient.setAuthErrorHandler(() => {
+      console.log('Auth error detected, logging out')
+      logout()
+    })
+  }, [logout])
+
+  useEffect(() => {
+    // Check for existing API key on app load
+    const storedKey = localStorage.getItem('devsecops_api_key')
+    if (storedKey) {
+      validateAndSetKey(storedKey)
+    } else {
+      setIsLoading(false)
+    }
+  }, [validateAndSetKey])
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    isAuthenticated,
+    apiKey,
+    login,
+    logout,
+    isLoading
+  }), [isAuthenticated, apiKey, login, logout, isLoading])
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, apiKey, login, logout, isLoading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )
-}
+})
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+// Create stable provider and hook using HMR utilities
+export const AuthProvider = createStableProvider(AuthProviderComponent, 'AuthProvider')
+
+export const useAuth = createStableHook(() => {
+  return (): AuthContextType => {
+    const context = useContext(AuthContext)
+    if (context === undefined) {
+      throw new Error('useAuth must be used within an AuthProvider')
+    }
+    return context
   }
-  return context
-}
+}, 'useAuth')
+
+// Enable HMR for this module
+enableHMR()

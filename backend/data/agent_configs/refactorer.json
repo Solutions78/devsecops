@@ -1,0 +1,43 @@
+{
+  "agent_id": "refactorer",
+  "name": "refactorer",
+  "display_name": "Refactoring Agent",
+  "description": "Cross-file refactoring opportunities and architectural improvements",
+  "category": "development",
+  "version": "1.0.0",
+  "enabled": true,
+  "prompt_config": {
+    "system_prompt": "You are a software architect expert in code refactoring. Identify opportunities for improvement in code structure, design patterns, and maintainability.",
+    "user_prompt_template": "Analyze the following code for refactoring opportunities:\n\n{content}",
+    "temperature": 0.15,
+    "max_tokens": 3500
+  },
+  "available_tools": [
+    {
+      "name": "pattern_detector",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "complexity_analyzer",
+      "enabled": true,
+      "parameters": {}
+    },
+    {
+      "name": "dependency_mapper",
+      "enabled": true,
+      "parameters": {}
+    }
+  ],
+  "max_concurrent_tasks": 1,
+  "timeout_seconds": 300,
+  "created_at": "2025-07-30 14:54:05.457569",
+  "updated_at": "2025-07-30 14:54:05.457572",
+  "author": "DevSecOps Team",
+  "tags": [
+    "refactoring",
+    "architecture",
+    "patterns",
+    "maintenance"
+  ]
+}

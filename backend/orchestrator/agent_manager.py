@@ -49,8 +49,10 @@ class AgentManager:
             agent (BaseAgent): The agent instance to register. Must have a valid
                 name attribute that will be used as the unique identifier.
         """
+        print(f"Registering agent: {agent.name}")  # Debug logging
         self.agents[agent.name] = agent
         self.status[agent.name] = AgentStatusEnum.idle
+        print(f"Registered agents: {list(self.agents.keys())}")  # Debug logging
 
     async def run_task(self, agent_name: str, task: Task) -> AgentOutput:
         """Execute a task using the specified agent.
@@ -79,9 +81,35 @@ class AgentManager:
         try:
             output = await agent.run(task)
             self.status[agent_name] = AgentStatusEnum.complete
+            agent.tasks_completed += 1
             await agent.emit_status(AgentStatusEnum.complete.value, f"Completed task {task.task_id}")
             return output
         except Exception as exc:
             self.status[agent_name] = AgentStatusEnum.error
             await agent.emit_status(AgentStatusEnum.error.value, str(exc))
             raise
+    
+    async def get_agent_status(self, agent_name: str) -> dict:
+        """Get the current status of a specific agent.
+        
+        Args:
+            agent_name (str): The name of the agent to get status for.
+            
+        Returns:
+            dict: Agent status information including status, last_updated, and tasks_completed.
+        """
+        print(f"Looking for agent: {agent_name}")  # Debug logging
+        print(f"Available agents: {list(self.agents.keys())}")  # Debug logging
+        
+        if agent_name not in self.agents:
+            print(f"Agent {agent_name} not found!")  # Debug logging
+            return {"status": "unknown", "last_updated": "N/A", "tasks_completed": 0}
+        
+        import datetime
+        current_status = self.status.get(agent_name, AgentStatusEnum.idle)
+        
+        return {
+            "status": current_status.value,
+            "last_updated": datetime.datetime.now().isoformat() + "Z",
+            "tasks_completed": getattr(self.agents[agent_name], 'tasks_completed', 0)
+        }

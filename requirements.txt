@@ -6,6 +6,7 @@ pytest-asyncio
 prometheus-fastapi-instrumentator
 httpx
 websockets
+python-dotenv
 # Security dependencies
 cryptography>=41.0.0
 keyring>=24.0.0

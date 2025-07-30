@@ -27,6 +27,7 @@ class BaseAgent(abc.ABC):
         # caring about its runtime registration name.
         self.name = name or self.__class__.__name__
         self.event_bus = event_bus
+        self.tasks_completed = 0
 
     async def emit_status(self, status: str, message: Optional[str] = None) -> None:
         if not self.event_bus:
