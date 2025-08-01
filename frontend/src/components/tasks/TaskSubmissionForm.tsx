@@ -15,6 +15,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  InputAdornment,
+  IconButton,
 } from '@mui/material'
 import {
   Send as SendIcon,
@@ -27,6 +29,7 @@ import {
   Assessment as TestIcon,
   Compare as DifferenceIcon,
   PlayArrow as ExecuteIcon,
+  Folder as FolderIcon,
 } from '@mui/icons-material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient, { TaskSubmission } from '../../services/api'
@@ -130,6 +133,46 @@ export default function TaskSubmissionForm() {
       ...prev,
       [paramKey]: value,
     }))
+  }
+
+  const handleDirectoryBrowse = async (paramKey: string) => {
+    try {
+      // Use the File System Access API if available (modern browsers)
+      if ('showDirectoryPicker' in window) {
+        const directoryHandle = await (window as any).showDirectoryPicker()
+        const directoryPath = directoryHandle.name
+        // Get the full path if possible, otherwise use the directory name
+        handleParamChange(paramKey, `/${directoryPath}`)
+      } else {
+        // Fallback for browsers that don't support File System Access API
+        // Create a hidden file input to trigger directory selection
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.webkitdirectory = true
+        input.multiple = true
+        input.style.display = 'none'
+        
+        input.onchange = (e) => {
+          const files = (e.target as HTMLInputElement).files
+          if (files && files.length > 0) {
+            // Extract the common directory path from the first file
+            const firstFile = files[0]
+            const pathParts = firstFile.webkitRelativePath.split('/')
+            if (pathParts.length > 1) {
+              const directoryName = pathParts[0]
+              handleParamChange(paramKey, `/${directoryName}`)
+            }
+          }
+          document.body.removeChild(input)
+        }
+        
+        document.body.appendChild(input)
+        input.click()
+      }
+    } catch (error) {
+      // User cancelled the directory picker or an error occurred
+      console.log('Directory selection cancelled or failed:', error)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -238,6 +281,22 @@ export default function TaskSubmissionForm() {
                             placeholder={config.placeholder}
                             required={config.required}
                             disabled={submitTaskMutation.isPending}
+                            InputProps={key === 'directory' ? {
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <Tooltip title="Browse for directory" arrow>
+                                    <IconButton
+                                      edge="end"
+                                      onClick={() => handleDirectoryBrowse(key)}
+                                      disabled={submitTaskMutation.isPending}
+                                      size="small"
+                                    >
+                                      <FolderIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </InputAdornment>
+                              ),
+                            } : undefined}
                           />
                         )}
                       </Tooltip>
