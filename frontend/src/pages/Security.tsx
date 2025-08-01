@@ -267,14 +267,21 @@ export default function Security() {
                         secondaryTypographyProps={{ component: 'div' }}
                       />
                       <ListItemSecondaryAction>
-                        <Tooltip title="Delete user">
-                          <IconButton
-                            edge="end"
-                            onClick={() => handleDeleteUser(user.api_key_masked.replace('...', ''))}
-                            disabled={deleteUserMutation.isPending}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                        <Tooltip
+                          title="Delete user"
+                          disableHoverListener={deleteUserMutation.isPending}
+                          disableFocusListener={deleteUserMutation.isPending}
+                          disableTouchListener={deleteUserMutation.isPending}
+                        >
+                          <span style={{ display: 'flex' }}>
+                            <IconButton
+                              edge="end"
+                              onClick={() => handleDeleteUser(user.api_key_masked.replace('...', ''))}
+                              disabled={deleteUserMutation.isPending}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </ListItemSecondaryAction>
                     </ListItem>

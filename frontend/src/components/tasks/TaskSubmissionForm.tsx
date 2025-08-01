@@ -15,8 +15,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  InputAdornment,
-  IconButton,
 } from '@mui/material'
 import {
   Send as SendIcon,
@@ -29,10 +27,10 @@ import {
   Assessment as TestIcon,
   Compare as DifferenceIcon,
   PlayArrow as ExecuteIcon,
-  Folder as FolderIcon,
 } from '@mui/icons-material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient, { TaskSubmission } from '../../services/api'
+import DirectorySelector from '../DirectorySelector'
 
 const agentIntents = [
   {
@@ -135,107 +133,6 @@ export default function TaskSubmissionForm() {
     }))
   }
 
-  const handleDirectoryBrowse = async (paramKey: string) => {
-    try {
-      // Use the File System Access API if available (modern browsers)
-      if ('showDirectoryPicker' in window) {
-        const directoryHandle = await (window as any).showDirectoryPicker()
-        
-        // Since we can't get the full system path due to security restrictions,
-        // we'll prompt the user to provide the correct path
-        const directoryName = directoryHandle.name
-        
-        // For common directory names, try to suggest likely paths
-        const commonPaths = {
-          'Desktop': '~/Desktop',
-          'Documents': '~/Documents',
-          'Downloads': '~/Downloads',
-          'Pictures': '~/Pictures',
-          'Music': '~/Music',
-          'Videos': '~/Videos',
-          'Projects': '~/Projects',
-          'Development': '~/Development',
-          'Code': '~/Code',
-          'workspace': '~/workspace',
-          'dev': '~/dev'
-        }
-        
-        // Check if it's a common directory
-        const suggestedPath = commonPaths[directoryName as keyof typeof commonPaths]
-        
-        if (suggestedPath) {
-          handleParamChange(paramKey, suggestedPath)
-        } else {
-          // Prompt user for the correct path format
-          const userPath = prompt(
-            `Selected directory: "${directoryName}"\n\n` +
-            `Please enter the full path in format ~/path/to/directory:\n` +
-            `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
-            `~/${directoryName}`
-          )
-          
-          if (userPath && userPath.trim()) {
-            // Ensure the path starts with ~/
-            let formattedPath = userPath.trim()
-            if (!formattedPath.startsWith('~/')) {
-              if (formattedPath.startsWith('/')) {
-                formattedPath = `~${formattedPath}`
-              } else {
-                formattedPath = `~/${formattedPath}`
-              }
-            }
-            handleParamChange(paramKey, formattedPath)
-          }
-        }
-      } else {
-        // Fallback for browsers that don't support File System Access API
-        const input = document.createElement('input')
-        input.type = 'file'
-        input.webkitdirectory = true
-        input.multiple = true
-        input.style.display = 'none'
-        
-        input.onchange = (e) => {
-          const files = (e.target as HTMLInputElement).files
-          if (files && files.length > 0) {
-            const firstFile = files[0]
-            const pathParts = firstFile.webkitRelativePath.split('/')
-            
-            if (pathParts.length > 0) {
-              const directoryName = pathParts[0]
-              
-              // Prompt user for the correct path since we can't determine the full path
-              const userPath = prompt(
-                `Selected directory: "${directoryName}"\n\n` +
-                `Please enter the full path in format ~/path/to/directory:\n` +
-                `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
-                `~/${directoryName}`
-              )
-              
-              if (userPath && userPath.trim()) {
-                let formattedPath = userPath.trim()
-                if (!formattedPath.startsWith('~/')) {
-                  if (formattedPath.startsWith('/')) {
-                    formattedPath = `~${formattedPath}`
-                  } else {
-                    formattedPath = `~/${formattedPath}`
-                  }
-                }
-                handleParamChange(paramKey, formattedPath)
-              }
-            }
-          }
-          document.body.removeChild(input)
-        }
-        
-        document.body.appendChild(input)
-        input.click()
-      }
-    } catch (error) {
-      // User cancelled the directory picker or an error occurred
-      console.log('Directory selection cancelled or failed:', error)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -331,6 +228,15 @@ export default function TaskSubmissionForm() {
                               </MenuItem>
                             ))}
                           </TextField>
+                        ) : key === 'directory' ? (
+                          <DirectorySelector
+                            value={params[key] || ''}
+                            onChange={(path) => handleParamChange(key, path)}
+                            label={config.label}
+                            placeholder={config.placeholder}
+                            required={config.required}
+                            disabled={submitTaskMutation.isPending}
+                          />
                         ) : (
                           <TextField
                             fullWidth
@@ -343,24 +249,6 @@ export default function TaskSubmissionForm() {
                             placeholder={config.placeholder}
                             required={config.required}
                             disabled={submitTaskMutation.isPending}
-                            InputProps={key === 'directory' ? {
-                              endAdornment: (
-                                <InputAdornment position="end">
-                                  <Tooltip title="Browse for directory" arrow>
-                                    <span>
-                                      <IconButton
-                                        edge="end"
-                                        onClick={() => handleDirectoryBrowse(key)}
-                                        disabled={submitTaskMutation.isPending}
-                                        size="small"
-                                      >
-                                        <FolderIcon />
-                                      </IconButton>
-                                    </span>
-                                  </Tooltip>
-                                </InputAdornment>
-                              ),
-                            } : undefined}
                           />
                         )}
                       </Tooltip>

@@ -134,14 +134,21 @@ export default function Login() {
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Tooltip title={showPassword ? 'Hide API key' : 'Show API key'}>
-                        <IconButton
-                          onClick={handleTogglePasswordVisibility}
-                          edge="end"
-                          disabled={isLoading}
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
+                      <Tooltip
+                        title={showPassword ? 'Hide API key' : 'Show API key'}
+                        disableHoverListener={isLoading}
+                        disableFocusListener={isLoading}
+                        disableTouchListener={isLoading}
+                      >
+                        <span style={{ display: 'flex' }}>
+                          <IconButton
+                            onClick={handleTogglePasswordVisibility}
+                            edge="end"
+                            disabled={isLoading}
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </InputAdornment>
                   ),
@@ -155,21 +162,39 @@ export default function Login() {
               </Alert>
             )}
 
-            <Tooltip title="Authenticate and access the DevSecOps dashboard" arrow>
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                size="large"
-                disabled={isLoading || !apiKey.trim()}
-                sx={{ mb: 2 }}
-              >
-                {isLoading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
+            {/*
+             * Wrap the potentially disabled Button in a <span> to avoid the
+             * MUI warning: "You are providing a disabled `button` child to the
+             * Tooltip component. A disabled element does not fire events." This
+             * wrapper element allows Tooltip to attach the needed event
+             * handlers while still preserving the disabled state of the actual
+             * button.
+             */}
+            <Tooltip
+              title="Authenticate and access the DevSecOps dashboard"
+              arrow
+              /* Disable the tooltip while the button is disabled so we don't
+               * give the user the impression the action is available. */
+              disableHoverListener={isLoading || !apiKey.trim()}
+              disableFocusListener={isLoading || !apiKey.trim()}
+              disableTouchListener={isLoading || !apiKey.trim()}
+            >
+              <span style={{ display: 'inline-flex', width: '100%' }}>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  disabled={isLoading || !apiKey.trim()}
+                  sx={{ mb: 2 }}
+                >
+                  {isLoading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </span>
             </Tooltip>
           </form>
 
