@@ -347,14 +347,16 @@ export default function TaskSubmissionForm() {
                               endAdornment: (
                                 <InputAdornment position="end">
                                   <Tooltip title="Browse for directory" arrow>
-                                    <IconButton
-                                      edge="end"
-                                      onClick={() => handleDirectoryBrowse(key)}
-                                      disabled={submitTaskMutation.isPending}
-                                      size="small"
-                                    >
-                                      <FolderIcon />
-                                    </IconButton>
+                                    <span>
+                                      <IconButton
+                                        edge="end"
+                                        onClick={() => handleDirectoryBrowse(key)}
+                                        disabled={submitTaskMutation.isPending}
+                                        size="small"
+                                      >
+                                        <FolderIcon />
+                                      </IconButton>
+                                    </span>
                                   </Tooltip>
                                 </InputAdornment>
                               ),
@@ -382,16 +384,18 @@ export default function TaskSubmissionForm() {
           )}
 
           <Tooltip title="Submit task to the selected AI agent for processing" arrow>
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              startIcon={submitTaskMutation.isPending ? <CircularProgress size={20} /> : <SendIcon />}
-              disabled={!selectedIntent || submitTaskMutation.isPending}
-              fullWidth
-            >
-              {submitTaskMutation.isPending ? 'Submitting Task...' : 'Submit Task'}
-            </Button>
+            <span>
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                startIcon={submitTaskMutation.isPending ? <CircularProgress size={20} /> : <SendIcon />}
+                disabled={!selectedIntent || submitTaskMutation.isPending}
+                fullWidth
+              >
+                {submitTaskMutation.isPending ? 'Submitting Task...' : 'Submit Task'}
+              </Button>
+            </span>
           </Tooltip>
         </form>
       </CardContent>
