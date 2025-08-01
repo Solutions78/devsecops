@@ -25,24 +25,58 @@ export default function DirectorySelector({
   const hiddenInputRef = useRef<HTMLInputElement>(null)
 
   /**
-   * Handle the directory selection by programmatically triggering
-   * the click event on the hidden file input element
+   * Handle the directory selection using modern File System Access API when available,
+   * falling back to webkitdirectory for older browsers
    */
-  const handleSelectDirectory = () => {
-    if (hiddenInputRef.current) {
-      hiddenInputRef.current.click()
+  const handleSelectDirectory = async () => {
+    try {
+      // Try to use the modern File System Access API first (Chrome/Edge)
+      if ('showDirectoryPicker' in window) {
+        const directoryHandle = await (window as any).showDirectoryPicker()
+        const directoryName = directoryHandle.name
+        
+        // Prompt user for full path since we can't get absolute paths due to security
+        const userPath = prompt(
+          `Selected directory: "${directoryName}"\n\n` +
+          `Please enter the full path in format ~/path/to/directory:\n` +
+          `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
+          `~/${directoryName}`
+        )
+        
+        if (userPath && userPath.trim()) {
+          let formattedPath = userPath.trim()
+          if (!formattedPath.startsWith('~/')) {
+            if (formattedPath.startsWith('/')) {
+              formattedPath = `~${formattedPath}`
+            } else {
+              formattedPath = `~/${formattedPath}`
+            }
+          }
+          onChange(formattedPath)
+        }
+      } else {
+        // Fallback to webkitdirectory for older browsers
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.click()
+        }
+      }
+    } catch (error) {
+      // User cancelled or API not supported, fall back to input
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.click()
+      }
     }
   }
 
   /**
-   * Handle the onChange event of the hidden input to capture
-   * the selected directory's path from the first file's webkitRelativePath
+   * Handle directory selection using modern File System Access API when available,
+   * with fallback to webkitdirectory for older browsers
    */
-  const handleDirectoryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDirectoryChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     
     if (files && files.length > 0) {
-      // Get the relative path from the first file
+      // Get the relative path from the first file (we only use this to extract directory name)
       const relativePath = files[0].webkitRelativePath
       
       // Extract the directory name by splitting the path and getting the first element
@@ -50,11 +84,26 @@ export default function DirectorySelector({
       const pathParts = relativePath.split('/')
       const directoryName = pathParts[0]
       
-      // Format as home directory relative path (~/)
-      const formattedPath = `~/${directoryName}`
+      // Prompt user to provide the full path since we can't get absolute paths
+      const userPath = prompt(
+        `Selected directory: "${directoryName}"\n\n` +
+        `Please enter the full path in format ~/path/to/directory:\n` +
+        `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
+        `~/${directoryName}`
+      )
       
-      // Update the state with the selected directory path
-      onChange(formattedPath)
+      if (userPath && userPath.trim()) {
+        // Ensure the path starts with ~/
+        let formattedPath = userPath.trim()
+        if (!formattedPath.startsWith('~/')) {
+          if (formattedPath.startsWith('/')) {
+            formattedPath = `~${formattedPath}`
+          } else {
+            formattedPath = `~/${formattedPath}`
+          }
+        }
+        onChange(formattedPath)
+      }
     }
     
     // Reset the input value to allow selecting the same directory again
