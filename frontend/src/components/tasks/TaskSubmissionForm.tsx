@@ -208,53 +208,74 @@ export default function TaskSubmissionForm() {
                 />
               </AccordionSummary>
               <AccordionDetails>
-                <Grid container spacing={2}>
-                  {Object.entries(selectedAgentConfig.params).map(([key, config]) => (
-                    <Grid item xs={12} sm={6} key={key}>
-                      <Tooltip title={`Configure ${config.label.toLowerCase()} for the ${selectedAgentConfig.label} agent`} arrow>
-                        {config.type === 'select' ? (
-                          <TextField
-                            select
-                            fullWidth
-                            label={config.label}
-                            value={params[key] || ''}
-                            onChange={(e) => handleParamChange(key, e.target.value)}
-                            required={config.required}
-                            disabled={submitTaskMutation.isPending}
-                          >
-                            {config.options?.map((option: string) => (
-                              <MenuItem key={option} value={option}>
-                                {option}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        ) : key === 'directory' ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {Object.entries(selectedAgentConfig.params).map(([key, config]) => {
+                    // Special handling for directory parameter - use vertical layout
+                    if (key === 'directory') {
+                      return (
+                        <Box key={key} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <Tooltip title={`Configure ${config.label.toLowerCase()} for the ${selectedAgentConfig.label} agent`} arrow>
+                            <TextField
+                              fullWidth
+                              label={config.label}
+                              value={params[key] || ''}
+                              onChange={(e) => handleParamChange(key, e.target.value)}
+                              placeholder={config.placeholder}
+                              required={config.required}
+                              disabled={submitTaskMutation.isPending}
+                            />
+                          </Tooltip>
                           <DirectorySelector
                             value={params[key] || ''}
                             onChange={(path) => handleParamChange(key, path)}
-                            label={config.label}
-                            placeholder={config.placeholder}
-                            required={config.required}
+                            label=""
+                            placeholder=""
                             disabled={submitTaskMutation.isPending}
+                            buttonOnly={true}
                           />
-                        ) : (
-                          <TextField
-                            fullWidth
-                            label={config.label}
-                            type={config.type === 'number' ? 'number' : 'text'}
-                            multiline={config.type === 'textarea'}
-                            rows={config.type === 'textarea' ? 4 : 1}
-                            value={params[key] || ''}
-                            onChange={(e) => handleParamChange(key, e.target.value)}
-                            placeholder={config.placeholder}
-                            required={config.required}
-                            disabled={submitTaskMutation.isPending}
-                          />
-                        )}
-                      </Tooltip>
-                    </Grid>
-                  ))}
-                </Grid>
+                        </Box>
+                      )
+                    }
+                    
+                    // Regular parameter handling
+                    return (
+                      <Box key={key} sx={{ width: '100%' }}>
+                        <Tooltip title={`Configure ${config.label.toLowerCase()} for the ${selectedAgentConfig.label} agent`} arrow>
+                          {config.type === 'select' ? (
+                            <TextField
+                              select
+                              fullWidth
+                              label={config.label}
+                              value={params[key] || ''}
+                              onChange={(e) => handleParamChange(key, e.target.value)}
+                              required={config.required}
+                              disabled={submitTaskMutation.isPending}
+                            >
+                              {config.options?.map((option: string) => (
+                                <MenuItem key={option} value={option}>
+                                  {option}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          ) : (
+                            <TextField
+                              fullWidth
+                              label={config.label}
+                              type={config.type === 'number' ? 'number' : 'text'}
+                              multiline={config.type === 'textarea'}
+                              rows={config.type === 'textarea' ? 4 : 1}
+                              value={params[key] || ''}
+                              onChange={(e) => handleParamChange(key, e.target.value)}
+                              placeholder={config.placeholder}
+                              required={config.required}
+                              disabled={submitTaskMutation.isPending}
+                            />
+                          )}
+                        </Tooltip>
+                      </Box>
+                    )
+                  })}
+                </Box>
               </AccordionDetails>
             </Accordion>
           )}

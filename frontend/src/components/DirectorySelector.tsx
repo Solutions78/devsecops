@@ -9,6 +9,7 @@ interface DirectorySelectorProps {
   placeholder?: string
   disabled?: boolean
   required?: boolean
+  buttonOnly?: boolean
 }
 
 export default function DirectorySelector({
@@ -17,7 +18,8 @@ export default function DirectorySelector({
   label = "Directory Path",
   placeholder = "~/path/to/directory",
   disabled = false,
-  required = false
+  required = false,
+  buttonOnly = false
 }: DirectorySelectorProps) {
   // useRef hook to get reference to the hidden input element
   const hiddenInputRef = useRef<HTMLInputElement>(null)
@@ -72,33 +74,51 @@ export default function DirectorySelector({
         disabled={disabled}
       />
       
-      {/* Text input field that displays the selected directory path */}
-      <TextField
-        fullWidth
-        label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        disabled={disabled}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              {/* Select Directory button that triggers the hidden input */}
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<FolderIcon />}
-                onClick={handleSelectDirectory}
-                disabled={disabled}
-                sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
-              >
-                Select Directory
-              </Button>
-            </InputAdornment>
-          ),
-        }}
-      />
+      {buttonOnly ? (
+        /* Button-only mode for use below text input */
+        <Button
+          variant="outlined"
+          size="medium"
+          startIcon={<FolderIcon />}
+          onClick={handleSelectDirectory}
+          disabled={disabled}
+          sx={{ 
+            alignSelf: 'flex-start',
+            minWidth: 'auto', 
+            whiteSpace: 'nowrap',
+            textTransform: 'none'
+          }}
+        >
+          Browse...
+        </Button>
+      ) : (
+        /* Combined input + button mode */
+        <TextField
+          fullWidth
+          label={label}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FolderIcon />}
+                  onClick={handleSelectDirectory}
+                  disabled={disabled}
+                  sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                >
+                  Select Directory
+                </Button>
+              </InputAdornment>
+            ),
+          }}
+        />
+      )}
     </Box>
   )
 }
