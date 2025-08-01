@@ -140,12 +140,55 @@ export default function TaskSubmissionForm() {
       // Use the File System Access API if available (modern browsers)
       if ('showDirectoryPicker' in window) {
         const directoryHandle = await (window as any).showDirectoryPicker()
-        const directoryPath = directoryHandle.name
-        // Get the full path if possible, otherwise use the directory name
-        handleParamChange(paramKey, `/${directoryPath}`)
+        
+        // Since we can't get the full system path due to security restrictions,
+        // we'll prompt the user to provide the correct path
+        const directoryName = directoryHandle.name
+        
+        // For common directory names, try to suggest likely paths
+        const commonPaths = {
+          'Desktop': '~/Desktop',
+          'Documents': '~/Documents',
+          'Downloads': '~/Downloads',
+          'Pictures': '~/Pictures',
+          'Music': '~/Music',
+          'Videos': '~/Videos',
+          'Projects': '~/Projects',
+          'Development': '~/Development',
+          'Code': '~/Code',
+          'workspace': '~/workspace',
+          'dev': '~/dev'
+        }
+        
+        // Check if it's a common directory
+        const suggestedPath = commonPaths[directoryName as keyof typeof commonPaths]
+        
+        if (suggestedPath) {
+          handleParamChange(paramKey, suggestedPath)
+        } else {
+          // Prompt user for the correct path format
+          const userPath = prompt(
+            `Selected directory: "${directoryName}"\n\n` +
+            `Please enter the full path in format ~/path/to/directory:\n` +
+            `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
+            `~/${directoryName}`
+          )
+          
+          if (userPath && userPath.trim()) {
+            // Ensure the path starts with ~/
+            let formattedPath = userPath.trim()
+            if (!formattedPath.startsWith('~/')) {
+              if (formattedPath.startsWith('/')) {
+                formattedPath = `~${formattedPath}`
+              } else {
+                formattedPath = `~/${formattedPath}`
+              }
+            }
+            handleParamChange(paramKey, formattedPath)
+          }
+        }
       } else {
         // Fallback for browsers that don't support File System Access API
-        // Create a hidden file input to trigger directory selection
         const input = document.createElement('input')
         input.type = 'file'
         input.webkitdirectory = true
@@ -155,12 +198,31 @@ export default function TaskSubmissionForm() {
         input.onchange = (e) => {
           const files = (e.target as HTMLInputElement).files
           if (files && files.length > 0) {
-            // Extract the common directory path from the first file
             const firstFile = files[0]
             const pathParts = firstFile.webkitRelativePath.split('/')
-            if (pathParts.length > 1) {
+            
+            if (pathParts.length > 0) {
               const directoryName = pathParts[0]
-              handleParamChange(paramKey, `/${directoryName}`)
+              
+              // Prompt user for the correct path since we can't determine the full path
+              const userPath = prompt(
+                `Selected directory: "${directoryName}"\n\n` +
+                `Please enter the full path in format ~/path/to/directory:\n` +
+                `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
+                `~/${directoryName}`
+              )
+              
+              if (userPath && userPath.trim()) {
+                let formattedPath = userPath.trim()
+                if (!formattedPath.startsWith('~/')) {
+                  if (formattedPath.startsWith('/')) {
+                    formattedPath = `~${formattedPath}`
+                  } else {
+                    formattedPath = `~/${formattedPath}`
+                  }
+                }
+                handleParamChange(paramKey, formattedPath)
+              }
             }
           }
           document.body.removeChild(input)
