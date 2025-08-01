@@ -125,9 +125,10 @@ interface AgentConfigDialogProps {
   onClose: () => void
   agentConfig: AgentConfiguration | null
   onSave: (config: AgentConfiguration) => void
+  isAdministrator: boolean
 }
 
-function AgentConfigDialog({ open, onClose, agentConfig, onSave }: AgentConfigDialogProps) {
+function AgentConfigDialog({ open, onClose, agentConfig, onSave, isAdministrator }: AgentConfigDialogProps) {
   const [config, setConfig] = useState<AgentConfiguration | null>(null)
 
   useEffect(() => {
@@ -658,6 +659,7 @@ export default function AgentConfig() {
         onClose={() => setDialogOpen(false)}
         agentConfig={selectedAgent}
         onSave={handleSaveConfiguration}
+        isAdministrator={isAdministrator}
       />
 
       <Snackbar

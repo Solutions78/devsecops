@@ -36,8 +36,8 @@
   ],
   "max_concurrent_tasks": 1,
   "timeout_seconds": 300,
-  "created_at": "2025-07-30 16:29:42.899784",
-  "updated_at": "2025-07-30 16:29:42.899787",
+  "created_at": "2025-08-01 14:04:29.680934",
+  "updated_at": "2025-08-01 14:04:29.680937",
   "author": "DevSecOps Team",
   "tags": [
     "orchestration",
