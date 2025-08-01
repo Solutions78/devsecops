@@ -607,3 +607,5 @@ graph TD
         R3 --> R3c[Timeline]
     end
 ```
+
+**Transform your DevSecOps workflow with AI-powered automation today!**
