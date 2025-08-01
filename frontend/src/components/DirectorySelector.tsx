@@ -38,19 +38,20 @@ export default function DirectorySelector({
         // Prompt user for full path since we can't get absolute paths due to security
         const userPath = prompt(
           `Selected directory: "${directoryName}"\n\n` +
-          `Please enter the full path in format ~/path/to/directory:\n` +
-          `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
-          `~/${directoryName}`
+          `Please enter the full path:\n` +
+          `Format: ~/path/to/directory or /full/absolute/path\n\n` +
+          `Examples:\n` +
+          `~/Library/CloudStorage/OneDrive-ColvinRun/Working Folder/Projects/${directoryName}\n` +
+          `~/Documents/${directoryName}\n` +
+          `~/Desktop/${directoryName}`,
+          `~/Library/CloudStorage/OneDrive-ColvinRun/Working Folder/Projects/${directoryName}`
         )
         
         if (userPath && userPath.trim()) {
           let formattedPath = userPath.trim()
-          if (!formattedPath.startsWith('~/')) {
-            if (formattedPath.startsWith('/')) {
-              formattedPath = `~${formattedPath}`
-            } else {
-              formattedPath = `~/${formattedPath}`
-            }
+          // Accept both ~/path and /absolute/path formats
+          if (!formattedPath.startsWith('~/') && !formattedPath.startsWith('/')) {
+            formattedPath = `~/${formattedPath}`
           }
           onChange(formattedPath)
         }
@@ -87,20 +88,20 @@ export default function DirectorySelector({
       // Prompt user to provide the full path since we can't get absolute paths
       const userPath = prompt(
         `Selected directory: "${directoryName}"\n\n` +
-        `Please enter the full path in format ~/path/to/directory:\n` +
-        `(e.g., ~/Documents/${directoryName}, ~/Desktop/${directoryName}, etc.)`,
-        `~/${directoryName}`
+        `Please enter the full path:\n` +
+        `Format: ~/path/to/directory or /full/absolute/path\n\n` +
+        `Examples:\n` +
+        `~/Library/CloudStorage/OneDrive-ColvinRun/Working Folder/Projects/${directoryName}\n` +
+        `~/Documents/${directoryName}\n` +
+        `~/Desktop/${directoryName}`,
+        `~/Library/CloudStorage/OneDrive-ColvinRun/Working Folder/Projects/${directoryName}`
       )
       
       if (userPath && userPath.trim()) {
-        // Ensure the path starts with ~/
         let formattedPath = userPath.trim()
-        if (!formattedPath.startsWith('~/')) {
-          if (formattedPath.startsWith('/')) {
-            formattedPath = `~${formattedPath}`
-          } else {
-            formattedPath = `~/${formattedPath}`
-          }
+        // Accept both ~/path and /absolute/path formats
+        if (!formattedPath.startsWith('~/') && !formattedPath.startsWith('/')) {
+          formattedPath = `~/${formattedPath}`
         }
         onChange(formattedPath)
       }
